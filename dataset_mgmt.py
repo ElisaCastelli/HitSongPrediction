@@ -7,14 +7,14 @@ from functools import reduce
 
 class Dataset_MGMT:
     def __init__(self):
-        self.csv_tracks = "SpotGenTrack/Data Sources/spotify_tracks.csv"
-        self.csv_albums = "SpotGenTrack/Data Sources/spotify_albums.csv"
-        self.csv_ll_features = "SpotGenTrack/Features Extracted/low_level_audio_features.csv"
-        self.csv_lyric_features = "SpotGenTrack/Features Extracted/lyrics_features.csv"
-        self.df_tracks = pd.read_csv(self.csv_tracks)
-        self.df_album = pd.read_csv(self.csv_albums)
-        self.df_ll_features = pd.read_csv(self.csv_ll_features)
-        self.df_lyrics_features = pd.read_csv(self.csv_lyric_features)
+        self.csv_tracks = "./Data Sources/spotify_tracks.csv"
+        self.csv_albums = "./Data Sources/spotify_albums.csv"
+        self.csv_ll_features = "./Features Extracted/low_level_audio_features.csv"
+        self.csv_lyric_features = "./Features Extracted/lyrics_features.csv"
+        self.df_tracks = pd.read_csv(self.csv_tracks, index_col=0)
+        self.df_album = pd.read_csv(self.csv_albums, index_col=0)
+        self.df_ll_features = pd.read_csv(self.csv_ll_features, index_col=0)
+        self.df_lyrics_features = pd.read_csv(self.csv_lyric_features, index_col=0)
         self.dataframe = self.create_dataframe()
 
     def parameter_analysis(self, dataset, parameter):
@@ -43,8 +43,7 @@ class Dataset_MGMT:
                            self.df_lyrics_features]
         
         df_final = reduce(lambda left, right: pd.merge(left, right, on='track_id'), df_join)
-        #df_final= df_final.drop('Unnamed: 0_x','Unnamed: 0_y','Unnamed: 0')
-        df_final.to_csv(os.path.join('./input', 'df_final.csv'))
+        df_final.to_csv(os.path.join('./input', 'df_final.csv'), index=False)
         print(df_final.columns)
         #return df_final
 

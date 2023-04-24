@@ -13,6 +13,41 @@ import matplotlib
 import matplotlib.pyplot as plt
 import pandas as pd
 
+plt.ion()
+
+matplotlib.rc('xtick', labelsize=30)
+matplotlib.rc('ytick', labelsize=30)
+
+
+class PlotLosses(Callback):
+    def on_train_begin(self, logs={}):
+        self.i = 0
+        self.x = []
+        self.losses = []
+        self.val_losses = []
+        self.fig = plt.figure(figsize=(16,16))
+        self.logs = []
+
+    def on_epoch_end(self, epoch, logs={}):
+        
+        self.logs.append(logs)
+        self.x.append(self.i)
+        self.losses.append(logs.get('loss'))
+        self.val_losses.append(logs.get('val_loss'))
+        self.i += 1
+        plt.figure(figsize=(16, 16))
+        plt.plot(self.x, self.losses, label="loss")
+        plt.plot(self.x, self.val_losses, label="val_loss")
+        plt.xlabel('Epoch', fontsize=30)
+        plt.ylabel('MSE', fontsize=30)
+        plt.legend(prop={'size': 30})
+        plt.grid()
+        name = 'cv_' + str(epoch) + '.pdf'
+        figure_path = os.path.join('./Figures', name)
+        plt.savefig(figure_path)
+        plt.show(block=False)
+        plt.draw()
+
 class MyModel:
     def __init__(self,model_name=None, model_dir=None, model_subDir=None, input_dim=None,
                  output_dim=None, optimizer=None, metrics=None, loss="mse",
@@ -34,10 +69,10 @@ class MyModel:
         self.scale_target = scale_target
         self.add_earlyStopping = add_earlyStopping
         self.audio_model = audio_model
-       # if plot_loss:
-       #     self.plot_loss = PlotLosses()
-       # else:
-       #     self.plot_loss = None
+        #if plot_loss:
+        self.plot_loss = PlotLosses()
+        #else:
+        #    self.plot_loss = None
         
         self.weights_path = weights_path
         self.saved_weights = saved_weights
@@ -65,7 +100,8 @@ class MyModel:
         try:
             self.model = self.create_model()
         except Exception as e:
-            self.logger.error(e)
+            #self.logger.error(e)
+            print(e)
             ok = False
             self.model = None
         return ok
@@ -132,10 +168,11 @@ class MyModel:
 
             self.model.compile(loss=self.loss, optimizer=self.optimizer, metrics=self.metrics)
             self.model.summary()
-            self.logger.info('Model Compiled!')
+            #self.logger.info('Model Compiled!')
         except Exception as e:
-            self.logger.error(e)
-            self.logger.error('Unable to compile the model')
+            #self.logger.error(e)
+            #self.logger.error('Unable to compile the model')
+            print('Unable to compile the model')
             ok=False
         return ok
 
@@ -255,10 +292,11 @@ class MyModel:
             with open(model_path, "w") as json_file:
                 json_file.write(model_json)
             self.model.save_weights(self.weights_path)
-            self.logger.info("Saved trained model at %s", model_path)
+            #self.logger.info("Saved trained model at %s", model_path)
         except Exception as e:
-            self.logger.error(e)
-            self.logger.error("Unable to save model at %s", model_path)
+            #self.logger.error(e)
+            #self.logger.error("Unable to save model at %s", model_path)
+            print(e)
             ok = False
         return ok
 
@@ -268,8 +306,9 @@ class MyModel:
             model = model_from_json(self.saved_model_path)
             model.load_weights(self.weights_path)
         except Exception as e:
-            self.logger.error('Unable to load Neural Network model')
-            self.logger.error(e)
+            print(e)
+            #self.logger.error('Unable to load Neural Network model')
+            #self.logger.error(e)
 
         return model
 
@@ -282,7 +321,7 @@ class MyModel:
             hidden_size_2 = int(input_size / 3)
 
             # Compress Level
-            self.logger.info('Compress level in the Autoencoder: %s', compress)
+            #self.logger.info('Compress level in the Autoencoder: %s', compress)
             if compress == 'auto':
                 code_size = int(input_size/5)
             elif compress == 'high':
