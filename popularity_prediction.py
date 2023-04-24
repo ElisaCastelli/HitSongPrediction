@@ -206,7 +206,12 @@ class PopularityPrediction:
         return ok
 
     def predict(self):
-        pass
+        try:
+            pass
+        except Exception as e:
+            print(e)
+        return
+
 
     def evaluate(self):
         pass

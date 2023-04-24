@@ -42,7 +42,7 @@ class PlotLosses(Callback):
         plt.ylabel('MSE', fontsize=30)
         plt.legend(prop={'size': 30})
         plt.grid()
-        name = 'cv_' + str(epoch) + '.pdf'
+        name = 'cv_' + str(epoch) + '.png'
         figure_path = os.path.join('./Figures', name)
         plt.savefig(figure_path)
         plt.show(block=False)
@@ -90,10 +90,26 @@ class MyModel:
             self.weights_path = os.path.join(self.saved_model_path, weight_name)
 
         # Build Directory
-        #self.init_directories()
+        self.init_directories()
 
         self.model = None
 
+    def init_directories(self):
+        try:
+            # Create Root Directory
+            if not os.path.exists(self.model_dir):
+                os.makedirs(self.model_dir)
+            # Create sub-directories
+            if not os.path.exists(self.model_subDir):
+                os.makedirs(self.model_subDir)
+
+            # Model Directory
+            if not os.path.exists(self.saved_model_path):
+                os.makedirs(self.saved_model_path)
+        except Exception as e:
+            #self.logger.error(e)
+            #self.logger.error('Unable to create model directory')
+            print('Unable to create model directory')
     
     def build_model(self):
         ok = True
@@ -271,19 +287,20 @@ class MyModel:
     def validate_model(self, X_test):
         y_pred = self.model.predict(X_test)
         return y_pred
-#
-    #def save_history(self, model_history, k):
-    #    ok = True
-    #    try:
-    #        model_history_name = 'model_history_' + str(k + 1) + '.json'
-    #        model_history_path = os.path.join(self.saved_model_path, model_history_name)
-    #        with open(model_history_path, 'w') as f:
-    #            json.dump(model_history.history, f)
-    #    except Exception as e:
-    #        self.logger.error(e)
-    #        ok = False
-    #    return ok
-#
+
+    def save_history(self, model_history, k):
+        ok = True
+        try:
+            model_history_name = 'model_history_' + str(k + 1) + '.json'
+            model_history_path = os.path.join(self.saved_model_path, model_history_name)
+            with open(model_history_path, 'w') as f:
+                json.dump(model_history.history, f)
+        except Exception as e:
+            #self.logger.error(e)
+            print(e)
+            ok = False
+        return ok
+
     def save_model(self):
         ok = True
         model_path = os.path.join(self.saved_model_path, 'model.json')
@@ -356,3 +373,36 @@ class MyModel:
             #self.logger.error(e)
 
         return encoder
+    
+    def get_model_summary(self, history=None, task='regression', k_fold=5):
+        output = {}
+        try:
+            # Regression
+            if task == 'regression':
+                for key in list(history.keys()):
+                    output['avg_' + key] = np.mean(history[key])
+                    self.logger.info('Average %s: %s', str(key), np.mean(history[key]))
+            # Classification
+            else:
+                for key in list(history.keys()):
+                    # No Number in the last position
+                    if not re.search('\d+', key.split('_')[-1]) and '_m' in key:
+                        temp = [history[key]]
+                        all_keys = [key + '_' + str(i) for i in range(1, k_fold)]
+                        all_values = [history[k] for k in all_keys]
+                        all_values += temp
+                        output[key] = np.mean(all_values)
+                    elif not re.search('\d+', key) and '_m' not in key:
+                        output[key] = history[key]
+
+
+            # Save Results
+            results_path = os.path.join(self.saved_model_path, 'model_summary.json')
+            jsonobj = json.dumps(output)
+            with open(results_path, "w") as json_file:
+                json_file.write(jsonobj)
+        except Exception as e:
+            self.logger.error(e)
+            output = {''}
+
+        return output
