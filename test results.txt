@@ -1,0 +1,3 @@
+Con anno : {'loss': 0.027985859662294388, 'mean_absolute_error': 0.13545434176921844, 'val_loss': 0.027515023946762085, 'val_mean_absolute_error': 0.13469219207763672, 'test_mean_absolute_error': 0.133823086530637}
+
+Senza anno : {'loss': 0.03142082318663597, 'mean_absolute_error': 0.14225998520851135, 'val_loss': 0.02968071959912777, 'val_mean_absolute_error': 0.1388382464647293,  'test_mean_absolute_error': 0.1395316381005778}

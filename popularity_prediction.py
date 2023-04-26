@@ -14,7 +14,7 @@ from models.model_selection import *
 
 class PopularityPrediction:
     def __init__(self):
-        self.df_final = pd.read_csv("./input/df_final.csv")
+        self.df_final = pd.read_csv("./input/df_final_noyear.csv")
         self.X = None
         self.y = None
         self.X_test = None
