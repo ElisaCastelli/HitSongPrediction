@@ -14,7 +14,7 @@ from models.model_selection import *
 
 class PopularityPrediction:
     def __init__(self):
-        self.df_final = pd.read_csv("./input/df_final_noyear.csv")
+        self.df_final = pd.read_csv("./input/df_final_year.csv")
         self.X = None
         self.y = None
         self.X_test = None
@@ -64,7 +64,7 @@ class PopularityPrediction:
             tracks_id.to_csv(os.path.join('./input', 'tracks_id_' + self.task + '.csv'))
             #self.logger.info('Pre-processing data for %s problem ...', self.task)
             drop_cols = ['album_id', 'analysis_url', 'artists_id',
-                                'available_markets', 'country', 'disc_number', 'id',
+                                'available_markets', 'country', 'disc_number', 'genres', 'id', 
                                 'lyrics','name', 'playlist','preview_url',
                                 'track_href', 'track_name_prev', 'track_number',
                                 'uri','time_signature','href', 'track_id', 'type']
