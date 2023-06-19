@@ -1,9 +1,9 @@
 import pandas as pd
 import os
 
-song_df = pd.read_csv(r"C:\Users\Utente\Documents\GitHub\HitSongPrediction\models\music_speech.csv")
-song_df2 = pd.read_csv(r"C:\Users\Utente\Documents\GitHub\HitSongPrediction\models\music_speech2.csv")
-song_df3 = pd.read_csv(r"C:\Users\Utente\Documents\GitHub\HitSongPrediction\models\music_speech3.csv")
+song_df = pd.read_csv(r"models/music_speech.csv")
+song_df2 = pd.read_csv(r"models/music_speech2.csv")
+song_df3 = pd.read_csv(r"models/music_speech3.csv")
 def create_clean_dataframe():
     speech = len(song_df[song_df['result']=='Speech'])+len(song_df2[song_df2['result']=='Speech'])+len(song_df3[song_df3['result']=='Speech'])
     print(f"{speech} file to remove")
@@ -26,5 +26,16 @@ def remove_speech_files():
         else:
           print("The file does not exist")
 
+def remove_empty_lyrics():
+    music_tracks = pd.read_csv(r"Data Sources/id_music_tracks.csv")
+    print(len(music_tracks))
+    no_lyrics_tracks = pd.read_csv(r"Data Sources/tracks_without_lyrics.csv")
+    no_lyrics_list = list(no_lyrics_tracks['id'])
+    print(no_lyrics_list)
+    music_tracks = music_tracks[~music_tracks['idSong'].isin(no_lyrics_list)]
+    print(len(music_tracks))
+    music_tracks.to_csv("Data Sources/id_music_tracks_with_lyrics.csv")
+
 #create_clean_dataframe()
-remove_speech_files()
+#remove_speech_files()
+remove_empty_lyrics()

@@ -85,6 +85,14 @@ class Dataset_MGMT:
         print(df_final.columns)
         df_final.to_csv(os.path.join('./input', 'df_final_year_noComedy.csv'), index=False)
 
+    def remove_empty_lyrics(self):
+        #id_lyrics_songs = set(self.df_tracks['track_id'])
+        id_lyrics_lyrics = set(self.df_lyrics_features['track_id'])
+        id_lyrics_songs = set(self.df_tracks['uri'].apply(lambda x: str(x)[str(x).rfind(':')+1:])) #add track_id retrieving it from the uri
+        listEmpty = list(id_lyrics_songs-id_lyrics_lyrics)
+        d = pd.DataFrame(listEmpty)
+        d.to_csv("Data Sources/tracks_without_lyrics.csv")
+        print(len(listEmpty))
 
     def create_dataframe(self):
     
@@ -101,8 +109,8 @@ class Dataset_MGMT:
 
 if __name__ == "__main__":
     m = Dataset_MGMT()
-    df = m.create_dataframe_year_noComedy()
-
+    #df = m.create_dataframe_year_noComedy()
+    m.remove_empty_lyrics()
     #print(df.shape)
     #print('indie' in df.iloc[0]['genres'])
     #print(np.array(df.iloc[0]['genres']))
