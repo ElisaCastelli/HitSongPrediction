@@ -135,8 +135,8 @@ class MyModel:
                                                            n_layer,
                                                            self.neuron_parameters)
                 model.add(Dense(n_hidden_neurons, input_dim=self.input_dim,
-                                activation='relu',
-                                kernel_initializer= self.initialization))
+                                activation = 'relu',
+                                kernel_initializer = self.initialization))
                 model.add(Dropout(self.level_dropout))
             elif i > 0 and i < self.layers - 2:
                 # Hidden Layers
