@@ -170,3 +170,13 @@ test.txt
 saved_models/feature_compressed/model_1_A/weights.h5
 saved_models/feature_compressed/model_1_A/weights.h5
 saved_models/feature_compressed/model_1_A/weights.h5
+/ESC-50-master/
+/GTZAN/genres_original/
+/GTZAN/images_original/
+/models/.neptune/
+/models/checkpoints/
+/models/Resnet/.neptune/
+/models/Resnet/checkpoint/
+/models/Resnet/checkpoint/
+/prove/
+/Spec/
