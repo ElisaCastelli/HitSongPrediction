@@ -21,7 +21,7 @@ neptune_logger = NeptuneLogger(
 # TODO HSP-62 MA CON DROPOUT INIZIALE E WEIGHT DECAY PIù ALTO
 PARAMS = {
     "batch_size": 64,
-    "lr": 5e-5,
+    "lr": 1e-5,
     "max_epochs": 500,
     "weight_decay": 1e-1,
     "patience": 25,
@@ -123,11 +123,11 @@ class GTZANPretrained(pl.LightningModule):
 
 
 checkpoint_callback = ModelCheckpoint(
-    monitor='/metrics/batch/val_loss',
+    monitor='/metrics/batch/val_accuracy',
     dirpath="/nas/home/ecastelli/thesis/models/Resnet/checkpoint",
-    filename='GTZAN_01WD-{epoch:02d}-{val_loss:.2f}',
+    filename='GTZAN_HPSS-{epoch:02d}-{/metrics/batch/val_accuracy:.2f}',
     save_top_k=3,
-    mode='min',
+    mode='max',
 )
 
 early_stop_callback = EarlyStopping(monitor="/metrics/batch/val_loss",
