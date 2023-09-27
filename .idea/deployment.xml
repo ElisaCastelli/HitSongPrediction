@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PublishConfigData" autoUpload="Always" serverName="euler (3)" remoteFilesAllowedToDisappearOnAutoupload="false" confirmBeforeUploading="false" autoUploadExternalChanges="true">
+    <option name="confirmBeforeUploading" value="false" />
+    <serverData>
+      <paths name="ampere">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/thesis" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="ampere (2)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/nas/home/ecastelli/thesis" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="bayes">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/thesis" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="bayes (2)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/nas/home/ecastelli/thesis" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="curie">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/thesis" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="curie (2)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/nas/home/ecastelli/thesis" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="curie (3)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/nas/home/ecastelli/thesis" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="dirac">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/nas/home/ecastelli" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="dirac (2)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/nas/home/ecastelli/thesis" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="dirac (3)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/nas/home/ecastelli/thesis" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="dirac (4)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/nas/home/ecastelli/thesis" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="euler">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/thesis" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+          <excludedPaths>
+            <excludedPath path="/thesis/models/Resnet/checkpoint/sample-mnist-epoch=72-val_loss=0.00.ckpt" />
+          </excludedPaths>
+        </serverdata>
+      </paths>
+      <paths name="euler (2)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/nas/home/ecastelli/thesis" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="euler (3)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/nas/home/ecastelli/thesis" local="$PROJECT_DIR$" />
+          </mappings>
+          <excludedPaths>
+            <excludedPath path="/nas/home/ecastelli/thesis/models/Resnet/checkpoint/GTZAN-epoch=24-val_acc=0.00-v1.ckpt" />
+          </excludedPaths>
+        </serverdata>
+      </paths>
+      <paths name="hack">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/nas/home/ecastelli" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+    </serverData>
+    <option name="myAutoUpload" value="ALWAYS" />
+  </component>
+</project>

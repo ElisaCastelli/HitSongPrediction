@@ -41,12 +41,12 @@ def get_hpss(y, hop_length=256, win_length=1024):
 
 # , n_fft=2048 n_fft=n_fft,
 
-def get_log_mel_spectrogram(waveform, sample_rate=SAMPLE_RATE, hop_length=1024, win_length=2048):
+def get_log_mel_spectrogram(waveform, sample_rate=SAMPLE_RATE, hop_length=512, win_length=1024):
     spectrogram_normalized = None
     try:
         mel = librosa.feature.melspectrogram(y=waveform, sr=sample_rate,
                                              hop_length=hop_length, win_length=win_length,
-                                             n_mels=128, fmax=8000, n_fft=win_length
+                                             n_mels=256, fmax=8000, n_fft=win_length
                                              )
         log_mel = librosa.power_to_db(mel, ref=np.max)
         spectrogram_normalized = (log_mel - log_mel.min()) / (log_mel.max() - log_mel.min())
@@ -88,6 +88,16 @@ def spec_enhancement_channel(mel_spectrogram, frequency_masking_para=16,
     return mel_spectrogram
 
 
+def time_enhancement_channel(waveform):
+    y_trimmed, index = librosa.effects.trim(y=waveform, top_db=40, frame_length=2048, hop_length=1024)
+    rate = random.uniform(0.5, 1.5)
+    y = librosa.effects.time_stretch(y=y_trimmed, rate=rate)  # rate from 0.5 to 1.5 randomly
+    steps = random.randint(1, 5)
+    y = librosa.effects.pitch_shift(y, n_steps=steps, sr=SAMPLE_RATE)
+    y = librosa.util.fix_length(data=y, size=661500)
+    return y
+
+
 class GTZANDataset(Dataset):
     def __init__(self, subset, augmented=False):
         if subset is None:
@@ -109,25 +119,31 @@ class GTZANDataset(Dataset):
         audio_sample_path = os.path.join(self.audio_dir, file)
         audio, sr = librosa.load(audio_sample_path, sr=SAMPLE_RATE)
         norm_spectrogram = get_log_mel_spectrogram(waveform=audio[:661500], sample_rate=SAMPLE_RATE)
+        # norm_spectrogram2 = get_log_mel_spectrogram(audio, SAMPLE_RATE, 512, 1024)
+        # norm_spectrogram3 = get_log_mel_spectrogram(audio, SAMPLE_RATE, 256, 512)
         if self.augmented:
-            norm_spectrogram = spec_enhancement_channel(norm_spectrogram)
-            # norm_spectrogram = norm_spectrogram.unsqueeze(0)
+            r = random.randint(0, 1)
+            if r == 0:
+                norm_spectrogram = spec_enhancement_channel(norm_spectrogram)
+            else:
+                audio = time_enhancement_channel(audio)
+                norm_spectrogram = get_log_mel_spectrogram(waveform=audio[:661500], sample_rate=SAMPLE_RATE)
+            # norm_spectrogram2 = spec_enhancement_channel(norm_spectrogram2)
+            # norm_spectrogram3 = spec_enhancement_channel(norm_spectrogram3)
         # h, p = get_hpss(audio)
         # h = self.tensor_transform(h).cuda()
         # h = self.resize_mel(h)
         # p = self.tensor_transform(p).cuda()
         # p = self.resize_mel(p)
-        norm_spectrogram = self.tensor_transform(norm_spectrogram).cuda()
-        norm_spectrogram = norm_spectrogram[:, :, :645]
-        norm_spectrogram2 = get_log_mel_spectrogram(audio, SAMPLE_RATE, 512, 1024)
-        norm_spectrogram2 = self.tensor_transform(norm_spectrogram2).cuda()
-        norm_spectrogram2 = norm_spectrogram2[:, :, :645]
-        norm_spectrogram3 = get_log_mel_spectrogram(audio, SAMPLE_RATE, 256, 512)
-        norm_spectrogram3 = self.tensor_transform(norm_spectrogram3).cuda()
-        norm_spectrogram3 = norm_spectrogram3[:, :, :645]
+        norm_spectrogram = self.tensor_transform(norm_spectrogram)
+        norm_spectrogram = norm_spectrogram[:, :, :1275]
+        # norm_spectrogram2 = self.tensor_transform(norm_spectrogram2).cuda()
+        # norm_spectrogram2 = norm_spectrogram2[:, :, :645]
+        # norm_spectrogram3 = self.tensor_transform(norm_spectrogram3).cuda()
+        # norm_spectrogram3 = norm_spectrogram3[:, :, :645]
         # h = h[:, :, :644]
         # p = p[:, :, :644]
-        rgb_spectrogram = torch.cat((norm_spectrogram, norm_spectrogram2, norm_spectrogram3), 0)
+        rgb_spectrogram = torch.cat((norm_spectrogram, norm_spectrogram, norm_spectrogram), 0)
         # crop1, crop2, crop3 = self.crop_mel(norm_spectrogram.cuda())
         # rgb_spectrogram = torch.cat((crop1.cuda(), crop2.cuda(), crop3.cuda()), 0)
         target = DICT_LABEL[label]

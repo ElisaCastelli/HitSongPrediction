@@ -1,9 +1,12 @@
 import pandas as pd
 import numpy as np
-# from langdetect import detect
+from langdetect import detect
 from analysis.csv_management import CSVManagement
 import os
-from models.Resnet.ESCAudioPreProcessing import AudioPreProcessing
+
+
+# from models.Resnet.ESCAudioPreProcessing import AudioPreProcessing
+
 
 # TODO usa tmux per runnare sulle macchine e poi spegnere (dopo aver fatto abbstanza debug)
 
@@ -66,21 +69,24 @@ class DatasetMGMT:
         std_p = np.std(self.df_tracks['popularity'])
         print("Std popularity: ", std_p)
 
-    # def extract_languages(self):
-    #     languages = []
-    #     ids_to_remove = []
-    #     for index, row in self.finalDF.iterrows():
-    #         lyrics = row['lyrics']
-    #         try:
-    #             lg = detect(lyrics)
-    #             languages.append(lg)
-    #         except Exception as e:
-    #             ids_to_remove.append(row['track_id'])
-    #             print(row['track_id'])
-    #             print(row['lyrics'])
-    #     # df_languages = pd.DataFrame(languages)
-    #     # df_languages.to_csv("Data Sources/languages_stats.csv")
-    #     self.remove_tracks(ids_to_remove)
+    def extract_languages(self):
+        df_languages = pd.DataFrame(columns=['spotify_id', 'language'])
+        for index, row in enumerate(self.finalDF.itertuples(), 0):
+            print(index)
+            track_id = row[-4]
+            lyrics = row[-3]
+            try:
+                lang = detect(lyrics)
+                print(lyrics + " " + lang)
+            except Exception as e:
+                lang = "NULL"
+            df_languages = pd.concat([pd.DataFrame([[track_id, lang]],
+                                                   columns=df_languages.columns),
+                                      df_languages],
+                                     ignore_index=True)
+        df_languages.to_csv(
+            os.path.join('/nas/home/ecastelli/thesis/input',
+                         'list_id_lang.csv'), index=True)
 
     def remove_tracks(self, list_to_remove):
         print(f"{len(self.finalDF)} - {len(list_to_remove)} ")
@@ -151,7 +157,7 @@ class DatasetMGMT:
 
     def remove_song(self, track_id):
         print(len(self.finalEN))
-        self.finalEN = self.finalEN[self.finalEN['track_id']!=track_id]
+        self.finalEN = self.finalEN[self.finalEN['track_id'] != track_id]
         print(len(self.finalEN))
         self.saveENDataset()
 
@@ -174,7 +180,43 @@ class DatasetMGMT:
             os.path.join('/nas/home/ecastelli/thesis/input/',
                          'FINAL_en.csv'), index=True)
 
+    def find_info_by_id(self, id):
+        try:
+            title = self.df_tracks.loc[self.df_tracks['id'] == id, 'name'].iloc[0]
+        except Exception as e:
+            title = "NULL"
+        try:
+            uri_artist = self.df_tracks.loc[self.df_tracks['id'] == id, 'artists_id']
+            firstP = str(uri_artist).find("'")
+            uri_artist = str(uri_artist)[firstP + 1:]
+            lastP = str(uri_artist).find("'")
+            uri_artist = str(uri_artist)[: lastP]
+            artist = self.df_artists.loc[self.df_artists['id'] == uri_artist, 'name'].iloc[0]
+        except Exception as e:
+            artist = "NULL"
+        return title, artist
+
+    def create_df_other_lang(self):
+        lang_id = pd.read_csv("/nas/home/ecastelli/thesis/input/"
+                              "list_id_lang.csv",
+                              encoding='utf8', index_col=0)
+        lang_es = lang_id[lang_id['language'] == 'es']
+        lang_it = lang_id[lang_id['language'] == 'it']
+        lang_fr = lang_id[lang_id['language'] == 'fr']
+        lang_de = lang_id[lang_id['language'] == 'de']
+        lang_pt = lang_id[lang_id['language'] == 'pt']
+        other_lang = pd.concat([lang_es, lang_it, lang_fr, lang_de, lang_pt])
+        print(len(other_lang))
+        other_lang.drop_duplicates('spotify_id', inplace=True)
+        print(len(other_lang))
+        # self.df_tracks = self.df_tracks[['']]
+        # df_final_BB = pd.merge(self.df_final_BB, self.df_bb, on='spotify_id', how='inner')
+        other_lang.to_csv(
+            os.path.join('/nas/home/ecastelli/thesis/input/',
+                         'SPD_other_lang.csv'), index=True)
+
+
 
 if __name__ == "__main__":
     m = DatasetMGMT()
-    m.add_popularity_class()
+    m.create_df_other_lang()

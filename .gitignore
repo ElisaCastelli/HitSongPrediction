@@ -180,3 +180,22 @@ saved_models/feature_compressed/model_1_A/weights.h5
 /models/Resnet/checkpoint/
 /prove/
 /Spec/
+*.png
+/FMA/
+/popularity_prediction.py
+/input/
+/Data Sources/
+/images/
+/models/
+/Billboard/
+/MagnaTagATune/
+/popularity_predictionOLD.py
+/Audio/
+/test results.txt
+/GTZAN/
+/Features Extracted/
+/dataset_mgmt.py
+/saved_models/
+/Spec/
+/analysis/
+/.gitignore

@@ -1,17 +1,14 @@
 import torch.nn as nn
 import torch
-from lightning.pytorch.trainer.trainer import Trainer
-from torch.optim import lr_scheduler
 import torchvision.models as models
-import pandas as pd
 from torchmetrics import Accuracy
 from GTZANDataloader import GTZANDataModule
+from FMADataLoader import FMADataloader
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.loggers import NeptuneLogger
 from lightning.pytorch.callbacks.early_stopping import EarlyStopping
 from torchvision.models import ResNet50_Weights
-from torch.utils.data import DataLoader, random_split
 
 neptune_logger = NeptuneLogger(
     project="elishcastle/HSP",
@@ -20,65 +17,42 @@ neptune_logger = NeptuneLogger(
 # TODO FAI PARTIRE UNO COME HSP-53 MA TENENDO I DROPOUT COME ORA, DOPO STESSA COSA MA TOGLIENDO IL LIVELLO DI MEZZO
 # TODO HSP-62 MA CON DROPOUT INIZIALE E WEIGHT DECAY PIù ALTO
 PARAMS = {
-    "batch_size": 64,
+    "batch_size": 16,
     "lr": 1e-5,
     "max_epochs": 500,
     "weight_decay": 1e-1,
-    "patience": 25,
+    "patience": 15,
 }
 neptune_logger.log_hyperparams(params=PARAMS)
 
 NUM_CLASSES = 10
+# NUM_CLASSES = 16
 
+# senza stride e più definizione
 
 class GTZANPretrained(pl.LightningModule):
     def __init__(self):
         super().__init__()
         self.GTZANDataModule = GTZANDataModule()
         self.GTZANDataModule.setup()
+        # self.FMADataLoader = FMADataloader()
+        # self.FMADataLoader.setup()
         self.acc = Accuracy(task="multiclass", num_classes=NUM_CLASSES)
         self.loss = nn.CrossEntropyLoss(reduction="mean")
         self.resnet = models.resnet50(weights=ResNet50_Weights.IMAGENET1K_V2)
-        self.resnet.conv1 = nn.Conv2d(in_channels=3, out_channels=64, kernel_size=(7, 7),
-                                      stride=(1, 1), padding=(3, 3), bias=False)
+        # self.resnet.conv1 = nn.Conv2d(in_channels=3, out_channels=64, kernel_size=(7, 7),
+        #                               stride=(1, 1), padding=(3, 3), bias=False)
+        # self.resnet.avgpool = nn.AdaptiveAvgPool2d((6, 4))
         self.resnet.fc = nn.Sequential(
             nn.Dropout(p=0.5),
             nn.BatchNorm1d(2048),
             nn.Linear(self.resnet.fc.in_features, out_features=NUM_CLASSES),
-            # nn.ReLU(),
-            # nn.Dropout(p=0.5),
-            # nn.BatchNorm1d(256),
-            # nn.Linear(256, 128),
-            # nn.ReLU(),
-            # nn.Dropout(p=0.5),
-            # nn.BatchNorm1d(256),
-            # nn.Linear(256, 64),
-            # nn.ReLU(),
-            # nn.Dropout(p=0.5),
-            # nn.Linear(64, out_features=NUM_CLASSES),
         )
         self.lr = PARAMS["lr"]
 
     def configure_optimizers(self):
-        # print(self.parameters())
         optimizer = torch.optim.Adam(self.parameters(), lr=PARAMS["lr"], weight_decay=PARAMS["weight_decay"])
-        # optimizer = torch.optim.AdamW(self.parameters(), lr=PARAMS["lr"])
-        # optimizer = torch.optim.Adagrad(self.parameters(), lr=1e-4)
-        # optimizer = torch.optim.SGD(self.parameters(), lr=1e-2, weight_decay=PARAMS["weight_decay"])
-        # scheduler1 = lr_scheduler.ReduceLROnPlateau(
-        #     optimizer=optimizer,
-        #     patience=3,
-        #     verbose=True,
-        #     factor=0.5,
-        #     min_lr=1e-5)
         return optimizer
-
-    # {"optimizer": optimizer,
-    # "lr_scheduler": {
-    #     "scheduler": scheduler1,
-    #     "monitor": "/metrics/batch/val_loss",
-    # },
-    # }
 
     def forward(self, track):
         predictions = self.resnet(track)
@@ -89,10 +63,13 @@ class GTZANPretrained(pl.LightningModule):
 
     def train_dataloader(self):
         data_loader = self.GTZANDataModule.train_dataloader()
+        # data_loader = self.FMADataLoader.train_dataloader()
         return data_loader
 
     def val_dataloader(self):
         data_loader = self.GTZANDataModule.val_dataloader()
+        #
+        # data_loader = self.FMADataLoader.val_dataloader()
         return data_loader
 
     def training_step(self, batch, batch_idx):
@@ -123,9 +100,9 @@ class GTZANPretrained(pl.LightningModule):
 
 
 checkpoint_callback = ModelCheckpoint(
-    monitor='/metrics/batch/val_accuracy',
+    monitor='/metrics/batch/val_acc',
     dirpath="/nas/home/ecastelli/thesis/models/Resnet/checkpoint",
-    filename='GTZAN_HPSS-{epoch:02d}-{/metrics/batch/val_accuracy:.2f}',
+    filename='fma-{epoch:02d}-{val_acc:.2f}',
     save_top_k=3,
     mode='max',
 )
@@ -137,8 +114,6 @@ early_stop_callback = EarlyStopping(monitor="/metrics/batch/val_loss",
 if __name__ == "__main__":
     model = GTZANPretrained()
     trainer = pl.Trainer(accelerator="gpu", devices=1, max_epochs=PARAMS["max_epochs"],
-                         check_val_every_n_epoch=1, logger=neptune_logger, log_every_n_steps=47,
+                         check_val_every_n_epoch=1, logger=neptune_logger,
                          callbacks=[early_stop_callback, checkpoint_callback])
-    # , reload_datalaoders_every_n_epochs=5
-
     trainer.fit(model=model)
