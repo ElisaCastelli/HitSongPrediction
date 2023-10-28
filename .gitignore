@@ -175,9 +175,9 @@ saved_models/feature_compressed/model_1_A/weights.h5
 /GTZAN/images_original/
 /models/.neptune/
 /models/checkpoints/
-/models/Resnet/.neptune/
-/models/Resnet/checkpoint/
-/models/Resnet/checkpoint/
+/models/Model/.neptune/
+/models/Model/checkpoint/
+/models/Model/checkpoint/
 /prove/
 /Spec/
 *.png

@@ -11,18 +11,15 @@ from torchmetrics.classification import MulticlassRecall, MulticlassPrecision, M
 from GTZANPreTrained import GTZANPretrained
 from torchvision import transforms
 import torch.nn.functional as F
-from BBDataModule import BBDataModule
+from HSPDataModule import HSPDataModule
 from sentence_transformers import SentenceTransformer
-from torchsummary import summary
-
-#TODO ps -u ecastelli
+from models_configurations import *
 
 neptune_logger = NeptuneLogger(
     project="elishcastle/HSP",
     api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiI3ZTkxYWQyNi1kMWM3LTRiNzYtYWJhNS05ZThmNWZiNmMwOTIifQ==",
 )
 
-# CLASSIFICAZIONE INGLESE 2 text embeddings
 PARAMS = {
     "batch_size": 64,
     "lr": 1e-5,
@@ -35,17 +32,20 @@ neptune_logger.log_hyperparams(params=PARAMS)
 NUM_CLASSES = 4
 
 
-class FineTuningResNet(pl.LightningModule):
-    def __init__(self, dataset, problem, augmented):
+class HSPModel(pl.LightningModule):
+    def __init__(self, language, problem, augmented):
         """
             Builder
         """
         super().__init__()
-        # self.tokenizer = AutoTokenizer.from_pretrained("sentence-transformers/all-MiniLM-L6-v2")
-        self.sbert_model = SentenceTransformer('sentence-transformers/all-mpnet-base-v2') # 768 --> 2817 total
-        # self.sbert_model = SentenceTransformer('sentence-transformers/multi-qa-mpnet-base-dot-v1')
-        # self.sbert_model = SentenceTransformer('sentence-transformers/paraphrase-multilingual-mpnet-base-v2')
-        # self.model = AutoModel.from_pretrained("sentence-transformers/all-MiniLM-L6-v2") # 384 dim --> 2433 total
+        self.language = language
+        if self.language == "en":
+            self.sbert_model = SentenceTransformer('sentence-transformers/all-mpnet-base-v2')  # 768 --> 2817 total
+            self.annotation_file = "/nas/home/ecastelli/thesis/Billboard/CSV/SPD_en_no_dup.csv"
+        else:
+            self.sbert_model = SentenceTransformer('sentence-transformers/multi-qa-mpnet-base-dot-v1')
+            # self.sbert_model = SentenceTransformer('sentence-transformers/paraphrase-multilingual-mpnet-base-v2')
+            self.annotation_file = "/nas/home/ecastelli/thesis/Billboard/CSV/SPD_all_lang_not_updated.csv"
         self.tensor_transform = transforms.ToTensor()
         self.problem = problem
         if problem == 'r':
@@ -58,15 +58,12 @@ class FineTuningResNet(pl.LightningModule):
             self.recall = MulticlassRecall(num_classes=NUM_CLASSES)
             self.f1score = MulticlassF1Score(num_classes=NUM_CLASSES)
             self.precision = MulticlassPrecision(num_classes=NUM_CLASSES)
-        self.dataset = dataset
-        if dataset == 'BB':
-            self.datamodule = BBDataModule(problem=problem, augmented=augmented)
-            self.datamodule.setup()
-        else:
-            dataset = TracksDataset()
-            self.train_data, self.val_data = random_split(dataset, [0.75, 0.25])
-        # checkpoint_path = "/nas/home/ecastelli/thesis/models/Resnet/checkpoint/GTZAN_HPSS-epoch=50-/metrics/batch/val_acc=0.77.ckpt"
-        checkpoint_path = "/nas/home/ecastelli/thesis/models/Resnet/checkpoint/NuovoGTZAN-epoch=24-val_acc=0.00.ckpt"
+
+        self.datamodule = HSPDataModule(problem=problem, augmented=augmented)
+        self.datamodule.setup(PARAMS["batch_size"])
+
+        # checkpoint_path = "/nas/home/ecastelli/thesis/models/Model/checkpoint/GTZAN_HPSS-epoch=50-/metrics/batch/val_acc=0.77.ckpt"
+        checkpoint_path = "/nas/home/ecastelli/thesis/models/Model/checkpoint/NuovoGTZAN-epoch=24-val_acc=0.00.ckpt"
         self.resnet = GTZANPretrained.load_from_checkpoint(checkpoint_path).resnet
         self.resnet = nn.Sequential(*list(self.resnet.children())[:-1])
         # self.resnet.conv1 = nn.Conv2d(in_channels=3, out_channels=64, kernel_size=(7, 7),
@@ -74,128 +71,15 @@ class FineTuningResNet(pl.LightningModule):
         # self.resnet = nn.Sequential(*list(self.resnet.children())[:-4])
         # avg = nn.AdaptiveAvgPool2d(output_size=(1, 1))
         # self.resnet.add_module("avgpool", avg)  # -> 1024 embeddings
-        if self.problem == 'r':
-
-            # REGRESSION ENGLISH
-            # self.layers = nn.Sequential(
-            #     nn.BatchNorm1d(3585),
-            #     nn.Dropout(p=0.5),
-            #     nn.Linear(3585, 512),
-            #     nn.ReLU(),
-            #     nn.Dropout(p=0.5),
-            #     nn.BatchNorm1d(512),
-            #     nn.Linear(512, 128),
-            #     nn.ReLU(),
-            #     nn.Dropout(p=0.5),
-            #     nn.BatchNorm1d(128),
-            #     nn.Linear(128, 1),
-            #     nn.Sigmoid(),
-            # )
-
-            # REGRESSION MULTI
-            self.layers = nn.Sequential(
-                nn.BatchNorm1d(3585),
-                nn.Dropout(p=0.5),
-                nn.Linear(3585, 1024),
-                nn.ReLU(),
-                nn.Dropout(p=0.5),
-                nn.BatchNorm1d(1024),
-                nn.Linear(1024, 1024),
-                nn.ReLU(),
-                nn.Dropout(p=0.5),
-                nn.BatchNorm1d(1024),
-                nn.Linear(1024, 512),
-                nn.ReLU(),
-                nn.Dropout(p=0.5),
-                nn.BatchNorm1d(512),
-                nn.Linear(512, 128),
-                nn.ReLU(),
-                nn.Dropout(p=0.5),
-                nn.BatchNorm1d(128),
-                nn.Linear(128, 1),
-                nn.Sigmoid(),
-            )
-        else:
-            # MULTI-LANG
-            # self.layers = nn.Sequential(
-            #     nn.BatchNorm1d(3585),
-            #     nn.Dropout(p=0.5),
-            #     nn.Linear(3585, 1024),
-            #     nn.ReLU(),
-            #     nn.Dropout(p=0.5),
-            #     nn.BatchNorm1d(1024),
-            #     nn.Linear(1024, 1024),
-            #     nn.ReLU(),
-            #     nn.Dropout(p=0.5),
-            #     nn.BatchNorm1d(1024),
-            #     nn.Linear(1024, 512),
-            #     nn.ReLU(),
-            #     nn.Dropout(p=0.5),
-            #     nn.BatchNorm1d(512),
-            #     nn.Linear(512, 128),
-            #     nn.ReLU(),
-            #     nn.Dropout(p=0.5),
-            #     nn.BatchNorm1d(128),
-            #     nn.Linear(128, NUM_CLASSES)
-            # )
-
-            # SOLO ENG SOLO AUDIO
-            # self.layers = nn.Sequential(
-            #     nn.BatchNorm1d(2049),
-            #     nn.Dropout(p=0.5),
-            #     nn.Linear(2049, 512),
-            #     nn.ReLU(),
-            #     nn.Dropout(p=0.5),
-            #     nn.BatchNorm1d(512),
-            #     nn.Linear(512, 128),
-            #     nn.ReLU(),
-            #     nn.Dropout(p=0.5),
-            #     nn.BatchNorm1d(128),
-            #     nn.Linear(128, NUM_CLASSES)
-            #
-            # )
-
-            # ENG E ONE TEXT EMBEDDING
-
-            # self.layers = nn.Sequential(
-            #     nn.BatchNorm1d(2817),
-            #     nn.Dropout(p=0.5),
-            #     nn.Linear(2817, 512),
-            #     nn.ReLU(),
-            #     nn.Dropout(p=0.5),
-            #     nn.BatchNorm1d(512),
-            #     nn.Linear(512, 128),
-            #     nn.ReLU(),
-            #     nn.Dropout(p=0.5),
-            #     nn.BatchNorm1d(128),
-            #     nn.Linear(128, NUM_CLASSES)
-            # )
-
-            # ENG WEIGHTED TEXT EMBEDDINGS
-            self.layers = nn.Sequential(
-                nn.BatchNorm1d(3585),
-                nn.Dropout(p=0.5),
-                nn.Linear(3585, 1024),
-                nn.ReLU(),
-                nn.Dropout(p=0.5),
-                nn.BatchNorm1d(1024),
-                nn.Linear(1024, 512),
-                nn.ReLU(),
-                nn.Dropout(p=0.5),
-                nn.BatchNorm1d(512),
-                nn.Linear(512, 128),
-                nn.ReLU(),
-                nn.Dropout(p=0.5),
-                nn.BatchNorm1d(128),
-                nn.Linear(128, NUM_CLASSES)
-            )
+        model_name = self.problem + "-" + self.language
+        self.layers = select_model(model_name)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=PARAMS["lr"], weight_decay=PARAMS["weight_decay"])
         # optimizer = torch.optim.SGD(self.parameters(), lr=PARAMS["lr"], weight_decay=1e-2)
         return optimizer
 
-    def forward(self, spectrogram,lyrics, year): # lyrics,
+    def forward(self, spectrogram, lyrics, year):  # lyrics,
         lyrics_emb = self.sbert_model.encode(lyrics)
         lyrics_emb = self.tensor_transform(lyrics_emb)
         lyrics_emb = lyrics_emb.squeeze()
@@ -205,7 +89,7 @@ class FineTuningResNet(pl.LightningModule):
             embeddings = self.resnet(spectrogram)
         embeddings = embeddings.squeeze()
         year = year.unsqueeze(1)
-        track = torch.concat((embeddings, lyrics_emb.cuda(), lyrics_emb.cuda(), year), dim=1) # lyrics_emb.cuda(),
+        track = torch.concat((embeddings, lyrics_emb.cuda(), lyrics_emb.cuda(), year), dim=1)  # lyrics_emb.cuda(),
         # track = torch.concat((embeddings, year), dim=1)
         x = self.layers(track)
         return x
@@ -249,7 +133,7 @@ class FineTuningResNet(pl.LightningModule):
         if self.problem == 'r':
             y = torch.div(y, 100)
             y = y.unsqueeze(1)
-        y_pred = self(spec, lyrics, year) # lyrics,
+        y_pred = self(spec, lyrics, year)  # lyrics,
         loss = self.loss(y_pred, y)
         self.log("/metrics/batch/val_loss", loss, prog_bar=True, on_step=False, on_epoch=True,
                  batch_size=PARAMS["batch_size"])
@@ -313,7 +197,7 @@ class FineTuningResNet(pl.LightningModule):
 
 # checkpoint_callback = ModelCheckpoint(
 #     monitor='/metrics/batch/val_acc',
-#     dirpath="/nas/home/ecastelli/thesis/models/Resnet/checkpoint/TransferLearning",
+#     dirpath="/nas/home/ecastelli/thesis/models/Model/checkpoint/TransferLearning",
 #     filename='FIRST-TRY-{epoch:02d}-{/metrics/batch/val_acc:.2f}',
 #     save_top_k=3,
 #     mode='max',
@@ -324,13 +208,17 @@ early_stop_callback = EarlyStopping(monitor="/metrics/batch/val_loss",
                                     patience=PARAMS["patience"])
 
 if __name__ == "__main__":
-    # torch.cuda.empty_cache()
-    model = FineTuningResNet(dataset='BB', problem='c', augmented=True)
-    # print(model.layers)
+    '''
+        Problem:
+            - Classification --> 'c'
+            - Regression --> 'r'
+        Language:
+            - English --> 'en'
+            - Multilingual --> 'mul'
+    '''
+    model = HSPModel(problem='c', language="en", augmented=True)
     model.freeze_pretrained()
-    trainer = pl.Trainer(accelerator="gpu", devices=[0,1], max_epochs=PARAMS["max_epochs"],
+    trainer = pl.Trainer(accelerator="gpu", devices=[0, 1], max_epochs=PARAMS["max_epochs"],
                          check_val_every_n_epoch=1, logger=neptune_logger,
-                         callbacks=[early_stop_callback], strategy='ddp_find_unused_parameters_true')  # , strategy='ddp_find_unused_parameters_true'
+                         callbacks=[early_stop_callback], strategy='ddp_find_unused_parameters_true')
     trainer.fit(model=model)
-    # # summary(model.layers, (1, 3585))
-    # print(model.layers)

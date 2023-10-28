@@ -99,7 +99,7 @@ def time_enhancement_channel(waveform):
     return y
 
 
-class BBDataset(Dataset):
+class HSPDataset(Dataset):
     def __init__(self, problem='c', augmented=False, subset=None):
         self.tracks_dataframe = subset
         if self.tracks_dataframe is None:
@@ -149,8 +149,3 @@ class BBDataset(Dataset):
 
     def __len__(self):
         return len(self.tracks_dataframe)
-#
-
-if __name__ == '__main__':
-    b = BBDataset('c')
-    b[55]

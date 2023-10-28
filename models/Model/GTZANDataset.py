@@ -7,7 +7,6 @@ import numpy as np
 import librosa
 import librosa.feature
 import librosa.display
-from torchvision.transforms.functional import crop
 import random
 
 ANNOTATIONS_FILE = "/nas/home/ecastelli/thesis/GTZAN/features_30_sec.csv"
@@ -15,6 +14,7 @@ AUDIO_DIR = "/nas/home/ecastelli/thesis/GTZAN/genres_original"
 
 SAMPLE_RATE = 22050
 
+''' List of genres present in GTZANGenre Dataset'''
 DICT_LABEL = {
     'blues': 0,
     'classical': 1,
@@ -28,19 +28,6 @@ DICT_LABEL = {
     'rock': 9,
 }
 
-
-def get_hpss(y, hop_length=256, win_length=1024):
-    D = np.abs(librosa.stft(y=y, win_length=win_length, hop_length=hop_length, n_fft=win_length))
-    h, p = librosa.decompose.hpss(D)
-    h = librosa.power_to_db(h, ref=np.max)
-    p = librosa.power_to_db(p, ref=np.max)
-    h = (h - h.min()) / (h.max() - h.min())
-    p = (p - p.min()) / (p.max() - p.min())
-    return h, p
-
-
-# , n_fft=2048 n_fft=n_fft,
-
 def get_log_mel_spectrogram(waveform, sample_rate=SAMPLE_RATE, hop_length=512, win_length=1024):
     spectrogram_normalized = None
     try:
@@ -53,12 +40,6 @@ def get_log_mel_spectrogram(waveform, sample_rate=SAMPLE_RATE, hop_length=512, w
     except Exception as e:
         print(e)
     return spectrogram_normalized
-
-def crop_mel(mel_spectrogram):
-    crop1 = crop(mel_spectrogram, top=0, left=0, height=224, width=224)
-    crop2 = crop(mel_spectrogram, top=0, left=236, height=224, width=224)
-    crop3 = crop(mel_spectrogram, top=0, left=480, height=224, width=224)
-    return crop1, crop2, crop3
 
 
 def spec_enhancement_channel(mel_spectrogram, frequency_masking_para=16,
@@ -98,6 +79,16 @@ def time_enhancement_channel(waveform):
     return y
 
 
+def get_hpss(y, hop_length=256, win_length=1024):
+    D = np.abs(librosa.stft(y=y, win_length=win_length, hop_length=hop_length, n_fft=win_length))
+    h, p = librosa.decompose.hpss(D)
+    h = librosa.power_to_db(h, ref=np.max)
+    p = librosa.power_to_db(p, ref=np.max)
+    h = (h - h.min()) / (h.max() - h.min())
+    p = (p - p.min()) / (p.max() - p.min())
+    return h, p
+
+
 class GTZANDataset(Dataset):
     def __init__(self, subset, augmented=False):
         if subset is None:
@@ -119,8 +110,6 @@ class GTZANDataset(Dataset):
         audio_sample_path = os.path.join(self.audio_dir, file)
         audio, sr = librosa.load(audio_sample_path, sr=SAMPLE_RATE)
         norm_spectrogram = get_log_mel_spectrogram(waveform=audio[:661500], sample_rate=SAMPLE_RATE)
-        # norm_spectrogram2 = get_log_mel_spectrogram(audio, SAMPLE_RATE, 512, 1024)
-        # norm_spectrogram3 = get_log_mel_spectrogram(audio, SAMPLE_RATE, 256, 512)
         if self.augmented:
             r = random.randint(0, 1)
             if r == 0:
@@ -128,31 +117,11 @@ class GTZANDataset(Dataset):
             else:
                 audio = time_enhancement_channel(audio)
                 norm_spectrogram = get_log_mel_spectrogram(waveform=audio[:661500], sample_rate=SAMPLE_RATE)
-            # norm_spectrogram2 = spec_enhancement_channel(norm_spectrogram2)
-            # norm_spectrogram3 = spec_enhancement_channel(norm_spectrogram3)
-        # h, p = get_hpss(audio)
-        # h = self.tensor_transform(h).cuda()
-        # h = self.resize_mel(h)
-        # p = self.tensor_transform(p).cuda()
-        # p = self.resize_mel(p)
         norm_spectrogram = self.tensor_transform(norm_spectrogram)
         norm_spectrogram = norm_spectrogram[:, :, :1275]
-        # norm_spectrogram2 = self.tensor_transform(norm_spectrogram2).cuda()
-        # norm_spectrogram2 = norm_spectrogram2[:, :, :645]
-        # norm_spectrogram3 = self.tensor_transform(norm_spectrogram3).cuda()
-        # norm_spectrogram3 = norm_spectrogram3[:, :, :645]
-        # h = h[:, :, :644]
-        # p = p[:, :, :644]
         rgb_spectrogram = torch.cat((norm_spectrogram, norm_spectrogram, norm_spectrogram), 0)
-        # crop1, crop2, crop3 = self.crop_mel(norm_spectrogram.cuda())
-        # rgb_spectrogram = torch.cat((crop1.cuda(), crop2.cuda(), crop3.cuda()), 0)
         target = DICT_LABEL[label]
         return rgb_spectrogram, target
 
     def __len__(self):
         return len(self.annotations)
-
-
-if __name__ == '__main__':
-    g = GTZANDataset(subset=None, augmented=False)
-    mel, _ = g[130]

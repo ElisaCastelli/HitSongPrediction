@@ -5,7 +5,7 @@ from analysis.csv_management import CSVManagement
 import os
 
 
-# from models.Resnet.ESCAudioPreProcessing import AudioPreProcessing
+# from models.Model.ESCAudioPreProcessing import AudioPreProcessing
 
 
 # TODO usa tmux per runnare sulle macchine e poi spegnere (dopo aver fatto abbstanza debug)
