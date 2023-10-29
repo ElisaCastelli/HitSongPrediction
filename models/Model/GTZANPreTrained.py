@@ -37,6 +37,7 @@ checkpoint_callback = ModelCheckpoint(
     save_top_k=2,
     mode='max',
 )
+
 ''' Definition of the EarlyStopping used to stop the execution when the validation loss value does not improve '''
 early_stop_callback = EarlyStopping(monitor="/metrics/batch/val_loss",
                                     mode="min",
@@ -47,7 +48,7 @@ class GTZANPretrained(pl.LightningModule):
     """ Class inheriting from LightningModule, it has the purpose of creating a model
      pre-trained using GTZANGenre dataset that will be used to extract music audio embeddings """
     def __init__(self):
-        """ Init method of the class GTZANPreTrained """
+        """ Builder """
         super().__init__()
         self.GTZANDataModule = GTZANDataModule()
         self.GTZANDataModule.setup(PARAMS["batch_size"])

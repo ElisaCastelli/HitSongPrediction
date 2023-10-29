@@ -4,22 +4,22 @@ from torch import nn
 import lightning.pytorch as pl
 from lightning.pytorch.loggers import NeptuneLogger
 from torch.utils.data import DataLoader, random_split
-from TracksDataset import TracksDataset
 from torchmetrics.regression import R2Score
 from torchmetrics import Accuracy, Recall, F1Score, Precision
 from torchmetrics.classification import MulticlassRecall, MulticlassPrecision, MulticlassF1Score
 from GTZANPreTrained import GTZANPretrained
 from torchvision import transforms
-import torch.nn.functional as F
 from HSPDataModule import HSPDataModule
 from sentence_transformers import SentenceTransformer
 from models_configurations import *
 
+''' NeptuneLogger object to log metrics and parameters'''
 neptune_logger = NeptuneLogger(
     project="elishcastle/HSP",
     api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiI3ZTkxYWQyNi1kMWM3LTRiNzYtYWJhNS05ZThmNWZiNmMwOTIifQ==",
 )
 
+''' Model Parameters'''
 PARAMS = {
     "batch_size": 64,
     "lr": 1e-5,
@@ -31,15 +31,27 @@ neptune_logger.log_hyperparams(params=PARAMS)
 
 NUM_CLASSES = 4
 
+''' Definition of the ModelCheckpoint used to save the best model weights according to the accuracy reached '''
+# checkpoint_callback = ModelCheckpoint(
+#     monitor='/metrics/batch/val_acc',
+#     dirpath="/nas/home/ecastelli/thesis/models/Model/checkpoint/TransferLearning",
+#     filename='FIRST-TRY-{epoch:02d}-{/metrics/batch/val_acc:.2f}',
+#     save_top_k=3,
+#     mode='max',
+# )
+
+''' Definition of the EarlyStopping used to stop the execution when the validation loss value does not improve '''
+early_stop_callback = EarlyStopping(monitor="/metrics/batch/val_loss",
+                                    mode="min",
+                                    patience=PARAMS["patience"])
 
 class HSPModel(pl.LightningModule):
-    def __init__(self, language, problem, augmented):
+    def __init__(self, language, problem, augmented, num_classes=4):
         """
-            Builder
+            Builder to set all the model parameter according to language selected and problem to solve
         """
         super().__init__()
-        self.language = language
-        if self.language == "en":
+        if language == "en":
             self.sbert_model = SentenceTransformer('sentence-transformers/all-mpnet-base-v2')  # 768 --> 2817 total
             self.annotation_file = "/nas/home/ecastelli/thesis/Billboard/CSV/SPD_en_no_dup.csv"
         else:
@@ -47,19 +59,20 @@ class HSPModel(pl.LightningModule):
             # self.sbert_model = SentenceTransformer('sentence-transformers/paraphrase-multilingual-mpnet-base-v2')
             self.annotation_file = "/nas/home/ecastelli/thesis/Billboard/CSV/SPD_all_lang_not_updated.csv"
         self.tensor_transform = transforms.ToTensor()
-        self.problem = problem
-        if problem == 'r':
+
+        if problem == 'r':  # Regression
             self.loss = nn.L1Loss()
             self.loss2 = nn.MSELoss()
             self.acc = R2Score()
-        else:
-            self.acc = Accuracy(task="multiclass", num_classes=NUM_CLASSES)
+        else:  # Classification
+            self.num_classes = num_classes
+            self.acc = Accuracy(task="multiclass", num_classes=num_classes)
             self.loss = nn.CrossEntropyLoss(reduction="mean")
-            self.recall = MulticlassRecall(num_classes=NUM_CLASSES)
-            self.f1score = MulticlassF1Score(num_classes=NUM_CLASSES)
-            self.precision = MulticlassPrecision(num_classes=NUM_CLASSES)
+            self.recall = MulticlassRecall(num_classes=num_classes)
+            self.f1score = MulticlassF1Score(num_classes=num_classes)
+            self.precision = MulticlassPrecision(num_classes=num_classes)
 
-        self.datamodule = HSPDataModule(problem=problem, augmented=augmented)
+        self.datamodule = HSPDataModule(problem=problem, language=language, augmented=augmented, num_classes=num_classes)
         self.datamodule.setup(PARAMS["batch_size"])
 
         # checkpoint_path = "/nas/home/ecastelli/thesis/models/Model/checkpoint/GTZAN_HPSS-epoch=50-/metrics/batch/val_acc=0.77.ckpt"
@@ -72,7 +85,9 @@ class HSPModel(pl.LightningModule):
         # avg = nn.AdaptiveAvgPool2d(output_size=(1, 1))
         # self.resnet.add_module("avgpool", avg)  # -> 1024 embeddings
         model_name = self.problem + "-" + self.language
-        self.layers = select_model(model_name)
+        self.layers = select_model(model_name, num_classes)  # Load the model configuration according to the problem and the language used
+        if self.layers is None:
+            print("Error selecting model configuration!")
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=PARAMS["lr"], weight_decay=PARAMS["weight_decay"])
@@ -157,17 +172,11 @@ class HSPModel(pl.LightningModule):
         return {'val_loss': loss}
 
     def train_dataloader(self):
-        if self.dataset == 'BB':
-            data_loader = self.datamodule.train_dataloader()
-        else:
-            data_loader = DataLoader(dataset=self.train_data, batch_size=PARAMS["batch_size"])
+        data_loader = self.datamodule.train_dataloader()
         return data_loader
 
     def val_dataloader(self):
-        if self.dataset == 'BB':
-            data_loader = self.datamodule.val_dataloader()
-        else:
-            data_loader = DataLoader(dataset=self.val_data, batch_size=PARAMS["batch_size"])
+        data_loader = self.datamodule.val_dataloader()
         return data_loader
 
     def freeze_pretrained(self):
@@ -195,18 +204,6 @@ class HSPModel(pl.LightningModule):
         return sentence_embeddings
 
 
-# checkpoint_callback = ModelCheckpoint(
-#     monitor='/metrics/batch/val_acc',
-#     dirpath="/nas/home/ecastelli/thesis/models/Model/checkpoint/TransferLearning",
-#     filename='FIRST-TRY-{epoch:02d}-{/metrics/batch/val_acc:.2f}',
-#     save_top_k=3,
-#     mode='max',
-# )
-
-early_stop_callback = EarlyStopping(monitor="/metrics/batch/val_loss",
-                                    mode="min",
-                                    patience=PARAMS["patience"])
-
 if __name__ == "__main__":
     '''
         Problem:
@@ -216,7 +213,7 @@ if __name__ == "__main__":
             - English --> 'en'
             - Multilingual --> 'mul'
     '''
-    model = HSPModel(problem='c', language="en", augmented=True)
+    model = HSPModel(problem='c', language="en", augmented=True, num_classes=4)
     model.freeze_pretrained()
     trainer = pl.Trainer(accelerator="gpu", devices=[0, 1], max_epochs=PARAMS["max_epochs"],
                          check_val_every_n_epoch=1, logger=neptune_logger,

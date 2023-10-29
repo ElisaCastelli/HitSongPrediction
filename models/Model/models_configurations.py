@@ -1,9 +1,18 @@
 from torch import nn
 
-NUM_CLASSES = 4
 
-
-def select_model(name):
+def select_model(name, num_classes):
+    """
+        Returns the model configuration based on the name received in input (problem-language)
+        6 configurations:
+            - c-en: classification with english dataset (double text embeddings)
+            - r-en: regression with english dataset
+            - c-mul: classification with multilingual dataset (double text embeddings)
+            - r-mul: regression with multilingual dataset
+            - c-onlyaudio-en: classification without text embeddings using english dataset
+            - c-oneembedding-en: classification with english dataset (single text embeddings)
+    """
+    layers = None
     if name == "r-en":
         # REGRESSION ENGLISH
         layers = nn.Sequential(
@@ -66,7 +75,7 @@ def select_model(name):
             nn.ReLU(),
             nn.Dropout(p=0.5),
             nn.BatchNorm1d(128),
-            nn.Linear(128, NUM_CLASSES)
+            nn.Linear(128, num_classes)
         )
     elif name == "c-en":
         # ENG WEIGHTED TEXT EMBEDDINGS
@@ -85,7 +94,7 @@ def select_model(name):
             nn.ReLU(),
             nn.Dropout(p=0.5),
             nn.BatchNorm1d(128),
-            nn.Linear(128, NUM_CLASSES)
+            nn.Linear(128, num_classes)
         )
     elif name == "c-onlyaudio-en":
         # SOLO ENG SOLO AUDIO
@@ -100,7 +109,7 @@ def select_model(name):
             nn.ReLU(),
             nn.Dropout(p=0.5),
             nn.BatchNorm1d(128),
-            nn.Linear(128, NUM_CLASSES)
+            nn.Linear(128, num_classes)
 
         )
 
@@ -117,6 +126,6 @@ def select_model(name):
             nn.ReLU(),
             nn.Dropout(p=0.5),
             nn.BatchNorm1d(128),
-            nn.Linear(128, NUM_CLASSES)
+            nn.Linear(128, num_classes)
         )
     return layers
