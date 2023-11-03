@@ -1,7 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module type="PYTHON_MODULE" version="4">
   <component name="NewModuleRootManager">
-    <content url="file://$MODULE_DIR$" />
+    <content url="file://$MODULE_DIR$">
+      <excludeFolder url="file://$MODULE_DIR$/Audio" />
+      <excludeFolder url="file://$MODULE_DIR$/Billboard/AudioBB" />
+      <excludeFolder url="file://$MODULE_DIR$/Billboard/CSV/Intermedi" />
+      <excludeFolder url="file://$MODULE_DIR$/FMA" />
+      <excludeFolder url="file://$MODULE_DIR$/Features Extracted" />
+      <excludeFolder url="file://$MODULE_DIR$/GTZAN/genres_original" />
+      <excludeFolder url="file://$MODULE_DIR$/GTZAN/images_original" />
+      <excludeFolder url="file://$MODULE_DIR$/MagnaTagATune" />
+      <excludeFolder url="file://$MODULE_DIR$/input" />
+      <excludeFolder url="file://$MODULE_DIR$/models/Model/.neptune" />
+      <excludeFolder url="file://$MODULE_DIR$/models/Model/checkpoint" />
+    </content>
     <orderEntry type="jdk" jdkName="Remote Python 3.9.13 (sftp://ecastelli@10.79.0.8:22/nas/home/ecastelli/miniconda3/envs/conda_th/bin/python)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
