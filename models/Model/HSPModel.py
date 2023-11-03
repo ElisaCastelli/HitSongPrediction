@@ -71,6 +71,7 @@ class HSPModel(pl.LightningModule):
             self.loss = nn.L1Loss()
             self.loss2 = nn.MSELoss()
             self.acc = R2Score()
+            self.num_classes = 4
         else:  # Classification
             self.num_classes = num_classes
             self.acc = Accuracy(task="multiclass", num_classes=num_classes)
@@ -79,7 +80,7 @@ class HSPModel(pl.LightningModule):
             self.f1score = MulticlassF1Score(num_classes=num_classes)
             self.precision = MulticlassPrecision(num_classes=num_classes)
         self.problem = problem
-        self.datamodule = HSPDataModule(problem=problem, language=language, num_classes=num_classes)
+        self.datamodule = HSPDataModule(problem=problem, language=language, num_classes=self.num_classes)
         self.datamodule.setup(PARAMS["batch_size"])
 
         # LOAD PRE-TRAINED RESNET-50 FINE-TUNED ON GTZAN GENRE

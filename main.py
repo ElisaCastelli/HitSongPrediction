@@ -1,16 +1,21 @@
 import argparse
+from models.Model.HSPModel import *
+
 
 def main():
     parser = argparse.ArgumentParser(
         description='Hit Song Prediction')
 
-    parser.add_argument('--epochs', type=int, help='Number of epochs', default=5000)
-    parser.add_argument('--batch_size', type=int, help='batch size', default=32)
-    parser.add_argument('--number_missing_ldspk', type=int, help='number of missing loudspeakers', default=32)
-    parser.add_argument('--gt_soundfield_dataset_path', type=str, help='path to dataset',
-                        default='/nas/home/lcomanducci/pressure_matching_deep_learning/dataset/circular_array/gt_soundfield_train.npy')
-    parser.add_argument('--learning_rate', type=float, help='Learning rate', default=0.001)
+    parser.add_argument('--problem', type=str, help='Classification [c] or Regression [r]', default='c')
+    parser.add_argument('--language', type=str, help='Multilingual [mul] or English [en]', default='en')
+    parser.add_argument('--n_classes', type=int, help='Number of popularity classes', default=4)
 
+    args = parser.parse_args()
+    problem = args.problem
+    language = args.language
+    n_classes = args.n_classes
+
+    hit_song_prediction(problem=problem, language=language, num_classes=n_classes)
 
 
 if __name__ == '__main__':
