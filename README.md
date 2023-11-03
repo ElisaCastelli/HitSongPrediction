@@ -9,5 +9,6 @@ This dataset contains:
 * Low level features computed on each song
 * Lyrics features computed on each song
 * Preview url for wach one
+
 A cleaning process has been conducted to remove not properly annotated songs, duplicates, songs that contain podcasts and also to update the lyrics using the [MusixMatch API](https://developer.musixmatch.com) since sometime title and lyrics of songs did not coincide.
-I've ended up with two different datasets: one with only English songs and another with multi-lingual songs.
+I've ended up with two different datasets: one with only English songs and another with multi-lingual songs that can be found in the Datasets directory. Starting from the Spotify ID, in spotify_track.csv the url to download the audio file is available. 
