@@ -2,11 +2,7 @@ import os
 import torch
 import pandas as pd
 from torch.utils.data import Dataset
-import librosa
-import librosa.feature
 from torchvision import transforms
-import librosa.display
-import random
 from audio_processing import *
 
 SAMPLE_RATE = 22050
@@ -14,11 +10,13 @@ SAMPLE_RATE = 22050
 
 
 AUDIO_DIR = "/nas/home/ecastelli/thesis/Audio/"
-# ANNOTATIONS_FILE = "/nas/home/ecastelli/thesis/Billboard/CSV/SPD_all_lang_not_updated.csv" # 24645 songs 32ksongs
-# ANNOTATIONS_FILE = "/nas/home/ecastelli/thesis/Billboard/CSV/SPD_en_no_dup.csv"
 
 
 def get_class(popularity, num_division):
+    """
+        Based on the number of class in which we want to classify the songs popularity,
+        taking the popularity value of a song this method returns the associated popularity class
+    """
     if num_division == 4:
         if popularity < 25:
             pop_class = 0
@@ -38,6 +36,7 @@ def get_class(popularity, num_division):
     return pop_class
 
 
+# List of indexes of the columns needed based on the dataset used
 INDEXES = {
     "en": {
         "label": -5,
@@ -56,6 +55,20 @@ INDEXES = {
 
 class HSPDataset(Dataset):
     def __init__(self, problem='c', language='en', annotation_file="", augmented=False, subset=None, num_classes=4):
+        """
+            Builder of a HSPDataset element that inherits from Dataset
+
+            Input:
+                - problem: (char) 'c' or 'r' to distinguish between classification and regression so that the target value
+                returned will be a popularity score or a class
+                - language: (string) 'en' or 'mul' to determine the column indexes of the dataset
+                - annotation_file: (string) dataset file path
+                - augmented: (boolean) True of False based on the choice of performing data augmentation
+                - subset: (Dataframe) object containing the portion of dataset used to create the HSPDataset object
+                - num_classes: (int) in case of classification is used to determine the number of classes to build
+                the popularity ranges
+
+        """
         self.tracks_dataframe = subset
         self.language = language
         self.indexes = INDEXES[self.language]
@@ -74,6 +87,12 @@ class HSPDataset(Dataset):
         print(len(self.tracks_dataframe))
 
     def __getitem__(self, index):
+        """
+            Returns information about the index-th element inside the dataset.
+
+            Input: index (int) of the element to get
+            Output: dictionary that contains 4 values regarding {"spectrogram":, "lyrics":, "year":, "label":}
+        """
         label = int(self.tracks_dataframe.iloc[index, self.indexes["label"]])
         if self.problem == 'c':
             label = get_class(label, self.num_classes)
@@ -99,4 +118,7 @@ class HSPDataset(Dataset):
         return result
 
     def __len__(self):
+        """
+            Returns the length of the dataset (int)
+        """
         return len(self.tracks_dataframe)

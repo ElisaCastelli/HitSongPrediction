@@ -43,6 +43,9 @@ class GTZANDataset(Dataset):
         self.augmented = augmented
 
     def __getitem__(self, index):
+        """
+            Returns the melspectrogram and the popularity target value of the index-th element inside the dataset
+        """
         label = self.annotations.iloc[index, -1]
         filename = self.annotations.iloc[index, 0]
         file = str(label) + "/" + str(filename)
@@ -65,4 +68,7 @@ class GTZANDataset(Dataset):
         return rgb_spectrogram, target
 
     def __len__(self):
+        """
+            Returns the length of the dataset
+        """
         return len(self.annotations)

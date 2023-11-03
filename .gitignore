@@ -199,3 +199,4 @@ saved_models/feature_compressed/model_1_A/weights.h5
 /Spec/
 /analysis/
 /.gitignore
+/models/OldModel/

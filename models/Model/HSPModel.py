@@ -46,6 +46,10 @@ early_stop_callback = EarlyStopping(monitor="/metrics/batch/val_loss",
                                     patience=PARAMS["patience"])
 
 class HSPModel(pl.LightningModule):
+    """
+        Class inheriting from LightningModule, it has the purpose of creating a model
+        that will be used to predict songs popularity
+    """
     def __init__(self, language, problem, augmented, num_classes=4):
         """
             Builder to set all the model parameter according to language selected and problem to solve
@@ -94,7 +98,14 @@ class HSPModel(pl.LightningModule):
         # optimizer = torch.optim.SGD(self.parameters(), lr=PARAMS["lr"], weight_decay=1e-2)
         return optimizer
 
-    def forward(self, spectrogram, lyrics, year):  # lyrics,
+    def forward(self, spectrogram, lyrics, year):
+        """
+            Applies the model
+
+            Input: the batch of tracks, lyrics and release year to be analyzed
+
+            Output: the model prediction
+        """
         lyrics_emb = self.sbert_model.encode(lyrics)
         lyrics_emb = self.tensor_transform(lyrics_emb)
         lyrics_emb = lyrics_emb.squeeze()
@@ -104,12 +115,16 @@ class HSPModel(pl.LightningModule):
             embeddings = self.resnet(spectrogram)
         embeddings = embeddings.squeeze()
         year = year.unsqueeze(1)
-        track = torch.concat((embeddings, lyrics_emb.cuda(), lyrics_emb.cuda(), year), dim=1)  # lyrics_emb.cuda(),
+        track = torch.concat((embeddings, lyrics_emb.cuda(), lyrics_emb.cuda(), year), dim=1)
         # track = torch.concat((embeddings, year), dim=1)
         x = self.layers(track)
         return x
 
     def training_step(self, batch, batch_idx):
+        """
+            Starting from each batch of audio it takes audio, lyrics, release years and targets.
+            It applies the model, gets the result and compute the loss and the accuracy.
+        """
         y = batch["label"]
         spec = batch["spectrogram"]
         year = batch["year"]
@@ -117,7 +132,7 @@ class HSPModel(pl.LightningModule):
         if self.problem == 'r':
             y = torch.div(y, 100)
             y = y.unsqueeze(1)
-        y_pred = self(spec, lyrics, year)  # lyrics,
+        y_pred = self(spec, lyrics, year)
         loss = self.loss(y_pred, y)
         self.log("/metrics/batch/train_loss", loss, prog_bar=True, on_step=False, on_epoch=True,
                  batch_size=PARAMS["batch_size"])
@@ -141,6 +156,10 @@ class HSPModel(pl.LightningModule):
         return {'loss': loss}
 
     def validation_step(self, batch, batch_idx):
+        """
+            Starting from each batch of audio it takes audio, lyrics, release years and targets.
+            It applies the model, gets the result and compute the loss and the accuracy.
+        """
         y = batch["label"]
         spec = batch["spectrogram"]
         year = batch["year"]
@@ -148,7 +167,7 @@ class HSPModel(pl.LightningModule):
         if self.problem == 'r':
             y = torch.div(y, 100)
             y = y.unsqueeze(1)
-        y_pred = self(spec, lyrics, year)  # lyrics,
+        y_pred = self(spec, lyrics, year)
         loss = self.loss(y_pred, y)
         self.log("/metrics/batch/val_loss", loss, prog_bar=True, on_step=False, on_epoch=True,
                  batch_size=PARAMS["batch_size"])
@@ -172,10 +191,16 @@ class HSPModel(pl.LightningModule):
         return {'val_loss': loss}
 
     def train_dataloader(self):
+        """
+            Returns the training data loader
+        """
         data_loader = self.datamodule.train_dataloader()
         return data_loader
 
     def val_dataloader(self):
+        """
+            Returns the validation data loader
+        """
         data_loader = self.datamodule.val_dataloader()
         return data_loader
 
