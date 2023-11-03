@@ -201,3 +201,5 @@ saved_models/feature_compressed/model_1_A/weights.h5
 /.gitignore
 /models/OldModel/
 /Audio/
+Features Extracted/low_level_audio_features.csv
+Features Extracted/lyrics_features.csv
