@@ -1,4 +1,4 @@
-# Hit-Song-Prediction
+# Hit Song Prediction System
 
 Python project with the aim of analyzing Hit Song Prediction. 
 * Pytorch Lightning version 2.0.7
