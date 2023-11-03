@@ -4,6 +4,7 @@ from torch import nn
 import lightning.pytorch as pl
 from lightning.pytorch.loggers import NeptuneLogger
 from torch.utils.data import DataLoader, random_split
+import torch.nn.functional as F
 from torchmetrics.regression import R2Score
 from torchmetrics import Accuracy, Recall, F1Score, Precision
 from torchmetrics.classification import MulticlassRecall, MulticlassPrecision, MulticlassF1Score
@@ -45,25 +46,27 @@ early_stop_callback = EarlyStopping(monitor="/metrics/batch/val_loss",
                                     mode="min",
                                     patience=PARAMS["patience"])
 
+
 class HSPModel(pl.LightningModule):
     """
         Class inheriting from LightningModule, it has the purpose of creating a model
         that will be used to predict songs popularity
     """
-    def __init__(self, language, problem, augmented, num_classes=4):
+
+    def __init__(self, language, problem, num_classes=4):
         """
             Builder to set all the model parameter according to language selected and problem to solve
         """
         super().__init__()
         if language == "en":
             self.sbert_model = SentenceTransformer('sentence-transformers/all-mpnet-base-v2')  # 768 --> 2817 total
-            self.annotation_file = "/nas/home/ecastelli/thesis/Billboard/CSV/SPD_en_no_dup.csv"
+            self.annotation_file = "/nas/home/ecastelli/thesis/Datasets/SPD_en_no_dup.csv"
         else:
             self.sbert_model = SentenceTransformer('sentence-transformers/multi-qa-mpnet-base-dot-v1')
             # self.sbert_model = SentenceTransformer('sentence-transformers/paraphrase-multilingual-mpnet-base-v2')
-            self.annotation_file = "/nas/home/ecastelli/thesis/Billboard/CSV/SPD_all_lang_not_updated.csv"
+            self.annotation_file = "/nas/home/ecastelli/thesis/Datasets/SPD_all_lang_no_dup.csv"
         self.tensor_transform = transforms.ToTensor()
-
+        self.language = language
         if problem == 'r':  # Regression
             self.loss = nn.L1Loss()
             self.loss2 = nn.MSELoss()
@@ -75,11 +78,14 @@ class HSPModel(pl.LightningModule):
             self.recall = MulticlassRecall(num_classes=num_classes)
             self.f1score = MulticlassF1Score(num_classes=num_classes)
             self.precision = MulticlassPrecision(num_classes=num_classes)
-
-        self.datamodule = HSPDataModule(problem=problem, language=language, augmented=augmented, num_classes=num_classes)
+        self.problem = problem
+        self.datamodule = HSPDataModule(problem=problem, language=language, num_classes=num_classes)
         self.datamodule.setup(PARAMS["batch_size"])
 
-        # checkpoint_path = "/nas/home/ecastelli/thesis/models/Model/checkpoint/GTZAN_HPSS-epoch=50-/metrics/batch/val_acc=0.77.ckpt"
+        # LOAD PRE-TRAINED RESNET-50 FINE-TUNED ON GTZAN GENRE
+
+        # checkpoint_path =
+        # "/nas/home/ecastelli/thesis/models/Model/checkpoint/GTZAN_HPSS-epoch=50-/metrics/batch/val_acc=0.77.ckpt"
         checkpoint_path = "/nas/home/ecastelli/thesis/models/Model/checkpoint/NuovoGTZAN-epoch=24-val_acc=0.00.ckpt"
         self.resnet = GTZANPretrained.load_from_checkpoint(checkpoint_path).resnet
         self.resnet = nn.Sequential(*list(self.resnet.children())[:-1])
@@ -88,14 +94,15 @@ class HSPModel(pl.LightningModule):
         # self.resnet = nn.Sequential(*list(self.resnet.children())[:-4])
         # avg = nn.AdaptiveAvgPool2d(output_size=(1, 1))
         # self.resnet.add_module("avgpool", avg)  # -> 1024 embeddings
+
+        # Load the model configuration according to the problem and the language used
         model_name = self.problem + "-" + self.language
-        self.layers = select_model(model_name, num_classes)  # Load the model configuration according to the problem and the language used
+        self.layers = select_model(model_name, num_classes)
         if self.layers is None:
             print("Error selecting model configuration!")
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=PARAMS["lr"], weight_decay=PARAMS["weight_decay"])
-        # optimizer = torch.optim.SGD(self.parameters(), lr=PARAMS["lr"], weight_decay=1e-2)
         return optimizer
 
     def forward(self, spectrogram, lyrics, year):
@@ -109,14 +116,21 @@ class HSPModel(pl.LightningModule):
         lyrics_emb = self.sbert_model.encode(lyrics)
         lyrics_emb = self.tensor_transform(lyrics_emb)
         lyrics_emb = lyrics_emb.squeeze()
-        # lyrics_emb = F.normalize(lyrics_emb, p=2, dim=1)
+        if self.language == "mul":
+            lyrics_emb = F.normalize(lyrics_emb, p=2, dim=1)  # Sentence-BERT multilingual does not normalize embeddings
         self.resnet.eval()
         with torch.no_grad():
             embeddings = self.resnet(spectrogram)
         embeddings = embeddings.squeeze()
         year = year.unsqueeze(1)
-        track = torch.concat((embeddings, lyrics_emb.cuda(), lyrics_emb.cuda(), year), dim=1)
-        # track = torch.concat((embeddings, year), dim=1)
+        # embeddings concatenation changes if we are evaluating the impact of only audio embeddings,
+        # single text embeddings and weighting text embeddings taking them twice (default)
+        if self.problem == "c-onlyaudio-en":
+            track = torch.concat((embeddings, year), dim=1)
+        elif self.problem == "c-onetext-en":
+            track = torch.concat((embeddings, lyrics_emb.cuda(), year), dim=1)
+        else:
+            track = torch.concat((embeddings, lyrics_emb.cuda(), lyrics_emb.cuda(), year), dim=1)
         x = self.layers(track)
         return x
 
@@ -208,37 +222,18 @@ class HSPModel(pl.LightningModule):
         for param in self.resnet.parameters():
             param.requires_grad = False
 
-    def mean_pooling(self, model_output, attention_mask):
-        token_embeddings = model_output[0]
-        input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
-        sum_embeddings = torch.sum(token_embeddings * input_mask_expanded, 1)
-        sum_mask = torch.clamp(input_mask_expanded.sum(1), min=1e-9)
-        result = sum_embeddings / sum_mask
-        return result.numpy().tolist()
 
-    def gen_embedding(self, text, model, tokenizer):
-        # Tokenize the texts
-        encoded_input = tokenizer(text, padding=True, truncation=True, max_length=512, return_tensors='pt')
-
-        # Encode the tokenized data with model
-        with torch.no_grad():
-            model_output = model(**encoded_input)
-
-        # Pool the outputs into a single vector
-        sentence_embeddings = self.mean_pooling(model_output, encoded_input['attention_mask'])
-        return sentence_embeddings
-
-
-if __name__ == "__main__":
-    '''
+def hit_song_prediction(problem, language, num_classes):
+    """
         Problem:
             - Classification --> 'c'
             - Regression --> 'r'
         Language:
             - English --> 'en'
             - Multilingual --> 'mul'
-    '''
-    model = HSPModel(problem='c', language="en", augmented=True, num_classes=4)
+        Trainer devices: if multi GPU [0, 1] add strategy='ddp_find_unused_parameters_true'
+    """
+    model = HSPModel(problem=problem, language=language, num_classes=num_classes)
     model.freeze_pretrained()
     trainer = pl.Trainer(accelerator="gpu", devices=[0, 1], max_epochs=PARAMS["max_epochs"],
                          check_val_every_n_epoch=1, logger=neptune_logger,

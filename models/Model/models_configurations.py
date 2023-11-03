@@ -113,7 +113,7 @@ def select_model(name, num_classes):
 
         )
 
-    elif name == "c-oneembedding-en":
+    elif name == "c-onetext-en":
         # ENG E ONE TEXT EMBEDDING
         layers = nn.Sequential(
             nn.BatchNorm1d(2817),
