@@ -21,3 +21,4 @@ popularity_prediction.py
 models/Model/__pycache__/GTZANDataloader.cpython-39.pyc
 models/Model/__pycache__/GTZANDataset.cpython-39.pyc
 models/Model/__pycache__/GTZANPreTrained.cpython-39.pyc
+*.csv
