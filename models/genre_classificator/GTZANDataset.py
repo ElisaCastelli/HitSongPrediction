@@ -1,11 +1,11 @@
 import os
 import torch
 from torch.utils.data import Dataset
-import pandas as pd
+import polars as pl
 from torchvision import transforms
 import librosa.feature
 import librosa.display
-from models.hsp_model.audio_processing import *
+from models.audio_processing import *
 
 
 ANNOTATIONS_FILE = "/nas/home/ecastelli/thesis/GTZAN/features_30_sec.csv"
@@ -30,9 +30,10 @@ DICT_LABEL = {
 
 class GTZANDataset(Dataset):
     def __init__(self, subset, augmented=False):
-        if subset is None:
-            subset = pd.read_csv(ANNOTATIONS_FILE)
-        self.annotations = subset
+        if subset:
+            self.annotations = subset
+        else:
+            self.annotations = pl.read_csv(ANNOTATIONS_FILE)
         self.audio_dir = AUDIO_DIR
         self.tensor_transform = transforms.ToTensor()
         self.resize_crop = transforms.Compose([
@@ -46,8 +47,8 @@ class GTZANDataset(Dataset):
         """
             Returns the melspectrogram and the popularity target value of the index-th element inside the dataset
         """
-        label = self.annotations.iloc[index, -1]
-        filename = self.annotations.iloc[index, 0]
+        label = self.annotations.row(index)["label"]
+        filename = self.annotations.row(index)[0]
         file = str(label) + "/" + str(filename)
         audio_sample_path = os.path.join(self.audio_dir, file)
         audio, sr = librosa.load(audio_sample_path, sr=SAMPLE_RATE)

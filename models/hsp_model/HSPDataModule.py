@@ -1,8 +1,8 @@
 import random
-import lightning.pytorch as pl
+import lightning.pytorch as plight
 from models.hsp_model.HSPDataset import *
 from torch.utils.data import DataLoader
-import pandas as pd
+import polars as pl
 import torch
 
 lists = {
@@ -22,7 +22,7 @@ def collate_fn(batch):
     }
 
 
-class HSPDataModule(pl.LightningDataModule):
+class HSPDataModule(plight.LightningDataModule):
     def __init__(self, problem, language, annotation_file, num_classes, augmented=True,):
         super().__init__()
         self.train_list = []
@@ -38,15 +38,16 @@ class HSPDataModule(pl.LightningDataModule):
 
     def setup(self, batch_size, stage=None):
         self.BATCH_SIZE = batch_size
-        dataframe = pd.read_csv(self.ANNOTATION_FILE, index_col=0, encoding='utf8')
-        for index, row in enumerate(dataframe.itertuples(), 0):
-            if self.language == "en":
-                label = row[-5]
-            else:
-                label = row[-1]
+        dataframe = pl.read_parquet(self.ANNOTATION_FILE)
+        #dataframe = pl.read_csv(self.ANNOTATION_FILE, index_col=0, encoding='utf8')
+
+        for row in dataframe.rows(named=True):
+            label = row['popularity']
             label = get_class(label, self.num_classes)
             lists[str(label)].append(row)
 
+        # stratification of popularity 
+            
         validation_list = []
         for pop_class in lists.values():
             random.shuffle(pop_class)
@@ -56,11 +57,11 @@ class HSPDataModule(pl.LightningDataModule):
             validation_list.extend(pop_class[q:])
 
         random.shuffle(self.train_list)
-        df_train = pd.DataFrame(self.train_list)
+        df_train = pl.DataFrame(self.train_list)
         df_train.drop(columns=['Index'], inplace=True)
         self.train_data = HSPDataset(subset=df_train, annotation_file=self.ANNOTATION_FILE,
                                      language=self.language, problem=self.problem, num_classes=self.num_classes)
-        df_val = pd.DataFrame(validation_list)
+        df_val = pl.DataFrame(validation_list)
         df_val.drop(columns=['Index'], inplace=True)
         self.validation_data = HSPDataset(subset=df_val, annotation_file=self.ANNOTATION_FILE,
                                           language=self.language, problem=self.problem, num_classes=self.num_classes)
@@ -69,7 +70,7 @@ class HSPDataModule(pl.LightningDataModule):
         train_aug_list = []
         train_aug_list.extend(self.train_list)
         train_aug_list.extend(self.train_list)
-        train_aug_data = pd.DataFrame(train_aug_list)
+        train_aug_data = pl.DataFrame(train_aug_list)
         train_aug_data.drop(columns=['Index'], inplace=True)
         train_aug_data = HSPDataset(subset=train_aug_data, annotation_file=self.ANNOTATION_FILE, language=self.language,
                                     augmented=True, problem=self.problem, num_classes=self.num_classes)
@@ -88,14 +89,3 @@ class HSPDataModule(pl.LightningDataModule):
         val_dataloader = DataLoader(self.validation_data, batch_size=self.BATCH_SIZE, num_workers=8,
                                     collate_fn=collate_fn)
         return val_dataloader
-
-    def get_shortest(self):
-        dataframe = HSPDataset(subset=pd.read_csv(self.ANNOTATION_FILE), augmented=False, problem='c')
-        length = len(dataframe)
-        min = 700000
-        for i in range(0, length - 1):
-            audio = dataframe[i]
-            if int(len(audio)) < min:
-                min = int(len(audio))
-
-        print(min)

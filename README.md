@@ -1,10 +1,7 @@
 # Hit Song Prediction System
 
 Python project with the aim of analyzing Hit Song Prediction. 
-* Pytorch Lightning version 2.0.7
-* Librosa 0.10.0
-* Neptune 1.5.0
-* Torch 2.0.1
+
 
 ### Dataset
 The dataset from which I've started to train and validate the system proposed is [SpotGenTrack](https://data.mendeley.com/datasets/4m2x4zngny).
@@ -29,9 +26,25 @@ The model consists in three main components:
 
 <img width="860" alt="my_model" src="https://github.com/ElisaCastelli/HitSongPrediction/assets/61751277/6c580c05-53c3-4dca-9c05-f5811b0a387b">
 
+### Repository Structure
+
+* datasets: it contains .csv / .parquet files with english songs and multilingual songs.
+* models: it contains the models used for this project. 
+    * podcast_discriminator contains a .ipynb notebook used to implement a model for distinguishing audio that contains podcasts and podcasts that conatins music
+    * genre_classificator
+    * hsp_model 
 
 ### Train
-Starting from the [main.py](main.py) file the training can be started passing three parameters:
+
+Starting from the [train.py](train.py) file the training can be started passing three parameters:
 * Problem to solve: classification (c) or regression (r)
 * Language to consider: english (en) or multilingual (mul)
 * Number of popularity classes to be considered in case of classification
+
+To start the training process:
+
+* Install the requirements.txt in your virtual environment
+* Check the connection to the servers to be able to have access to the audio files stored there and to the checkpoint of the pre-trained model
+* Change the NeptuneLogger parameters to be able to see logs
+* Launch from the main folder *python train.py --help* and follow the instructions
+

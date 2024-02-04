@@ -2,8 +2,8 @@ import torch.nn as nn
 import torch
 import torchvision.models as models
 from torchmetrics import Accuracy
-from models.hsp_model.GTZANDataloader import GTZANDataModule
-import lightning.pytorch as pl
+from models.genre_classificator.GTZANDataloader import GTZANDataModule
+import lightning.pytorch as plight
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.loggers import NeptuneLogger
 from lightning.pytorch.callbacks.early_stopping import EarlyStopping
@@ -44,7 +44,7 @@ early_stop_callback = EarlyStopping(monitor="/metrics/batch/val_loss",
                                     patience=PARAMS["patience"])
 
 
-class GTZANPretrained(pl.LightningModule):
+class GTZANPretrained(plight.LightningModule):
     """ Class inheriting from LightningModule, it has the purpose of creating a model
      pre-trained using GTZANGenre dataset that will be used to extract music audio embeddings """
     def __init__(self):
@@ -140,7 +140,7 @@ class GTZANPretrained(pl.LightningModule):
 
 if __name__ == "__main__":
     model = GTZANPretrained()
-    trainer = pl.Trainer(accelerator="gpu", devices=1, max_epochs=PARAMS["max_epochs"],
+    trainer = plight.Trainer(accelerator="gpu", devices=1, max_epochs=PARAMS["max_epochs"],
                          check_val_every_n_epoch=1, 
                          callbacks=[early_stop_callback, checkpoint_callback])
     #logger=neptune_logger,

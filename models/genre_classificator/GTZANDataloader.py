@@ -1,8 +1,8 @@
 import random
-import lightning.pytorch as pl
-from models.hsp_model.GTZANDataset import GTZANDataset
+import lightning.pytorch as plight
+from models.genre_classificator.GTZANDataset import GTZANDataset
 from torch.utils.data import DataLoader, Dataset
-import pandas as pd
+import polars as pl
 import torch
 
 ANNOTATIONS_FILE = "/nas/home/ecastelli/thesis/GTZAN/features_30_sec.csv"
@@ -21,7 +21,7 @@ lists = {'blues': [],
          }
 
 
-class GTZANDataModule(pl.LightningDataModule):
+class GTZANDataModule(plight.LightningDataModule):
     """
         Class inheriting from LightningDataModule,
         it has the purpose of standardizing the training, val, test splits, data preparation.
@@ -41,7 +41,7 @@ class GTZANDataModule(pl.LightningDataModule):
         """
         self.BATCH_SIZE = batch_size
         # creates a Dataframe with all the songs contained in GTZANGenre
-        dataframe = pd.read_csv(ANNOTATIONS_FILE)
+        dataframe = pl.read_csv(ANNOTATIONS_FILE)
 
         # Divide songs into genres to build a balanced dataset for training and valuation
         for index, row in enumerate(dataframe.itertuples(), 0):
@@ -53,10 +53,10 @@ class GTZANDataModule(pl.LightningDataModule):
             self.train_list.extend(genre[:50])
             self.validation_list.extend(genre[50:])
 
-        df_train = pd.DataFrame(self.train_list)
+        df_train = pl.DataFrame(self.train_list)
         df_train.drop(columns=['Index'], inplace=True)
         self.train_data = GTZANDataset(df_train)
-        df_val = pd.DataFrame(self.validation_list)
+        df_val = pl.DataFrame(self.validation_list)
         df_val.drop(columns=['Index'], inplace=True)
         self.validation_data = GTZANDataset(df_val)
 
@@ -70,8 +70,8 @@ class GTZANDataModule(pl.LightningDataModule):
         train_aug_list.extend(self.train_list)
         train_aug_list.extend(self.train_list)
         train_aug_list.extend(self.train_list)
-        train_aug_data = pd.DataFrame(train_aug_list)
-        train_aug_data.drop(columns=['Index'], inplace=True)
+        train_aug_data = pl.DataFrame(train_aug_list)
+        train_aug_data=train_aug_data.drop(['Index'])
         train_aug_data = GTZANDataset(train_aug_data, augmented=True)
         return train_aug_data
 

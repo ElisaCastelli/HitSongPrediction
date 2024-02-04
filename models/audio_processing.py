@@ -41,7 +41,7 @@ def spec_enhancement_channel(mel_spectrogram, frequency_masking_para=16,
     v = mel_spectrogram.shape[0]
     tau = mel_spectrogram.shape[1]
 
-    # Step 2 : Frequency masking
+    # Frequency masking
     for i in range(frequency_mask_num):
         f = np.random.uniform(low=0.0, high=frequency_masking_para)
         # f = torch.randint(0, frequency_masking_para, (1,))
@@ -50,7 +50,7 @@ def spec_enhancement_channel(mel_spectrogram, frequency_masking_para=16,
         f0 = random.randint(0, v - f)
         mel_spectrogram[f0:f0 + f, :] = 0
 
-    # Step 3 : Time masking
+    # Time masking
     for i in range(time_mask_num):
         # t = torch.randint(0, time_masking_para, (1,))
         t = np.random.uniform(low=0.0, high=time_masking_para)

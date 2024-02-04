@@ -1,7 +1,7 @@
 import torch
 from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
 from torch import nn
-import lightning.pytorch as pl
+import lightning.pytorch as plight
 from lightning.pytorch.loggers import NeptuneLogger
 from torch.utils.data import DataLoader, random_split
 import torch.nn.functional as F
@@ -30,8 +30,6 @@ PARAMS = {
 }
 #neptune_logger.log_hyperparams(params=PARAMS)
 
-NUM_CLASSES = 4
-
 ''' Definition of the ModelCheckpoint used to save the best model weights according to the accuracy reached '''
 # checkpoint_callback = ModelCheckpoint(
 #     monitor='/metrics/batch/val_acc',
@@ -46,8 +44,23 @@ early_stop_callback = EarlyStopping(monitor="/metrics/batch/val_loss",
                                     mode="min",
                                     patience=PARAMS["patience"])
 
+annotations_local={
+    "en":"Datasets/SPD_english.parquet",
+    "mul":"Datasets/SPD_multilingual.parquet"
+}
 
-class HSPModel(pl.LightningModule):
+annotations_nas={
+    "en":"/nas/home/ecastelli/thesis/Datasets/SPD_en_no_dup.csv",
+    "mul":"/nas/home/ecastelli/thesis/Datasets/SPD_all_lang_no_dup.csv"
+}
+
+sentence_bert={
+    "en":"sentence-transformers/all-mpnet-base-v2",
+    "mul":"sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
+    #"mul":"sentence-transformers/multi-qa-mpnet-base-dot-v1"
+}
+
+class HSPModel(plight.LightningModule):
     """
         Class inheriting from LightningModule, it has the purpose of creating a model
         that will be used to predict songs popularity
@@ -58,20 +71,15 @@ class HSPModel(pl.LightningModule):
             Builder to set all the model parameter according to language selected and problem to solve
         """
         super().__init__()
-        if language == "en":
-            #self.sbert_model = SentenceTransformer('sentence-transformers/all-mpnet-base-v2')  # 768 --> 2817 total
-            self.annotation_file = "/nas/home/ecastelli/thesis/Datasets/SPD_en_no_dup.csv"
-        else:
-            #self.sbert_model = SentenceTransformer('sentence-transformers/multi-qa-mpnet-base-dot-v1')
-            # self.sbert_model = SentenceTransformer('sentence-transformers/paraphrase-multilingual-mpnet-base-v2')
-            self.annotation_file = "/nas/home/ecastelli/thesis/Datasets/SPD_all_lang_no_dup.csv"
+        self.annotation_file=annotations_local[language]
+        self.sbert_model=sentence_bert[language]
         self.tensor_transform = transforms.ToTensor()
         self.language = language
         if problem == 'r':  # Regression
             self.loss = nn.L1Loss()
             self.loss2 = nn.MSELoss()
             self.acc = R2Score()
-            self.num_classes = 4
+            self.num_classes = 4 # used to do stratification on popularity
         else:  # Classification
             self.num_classes = num_classes
             self.acc = Accuracy(task="multiclass", num_classes=num_classes)
@@ -243,7 +251,7 @@ def hit_song_prediction(problem, language, num_classes):
 
     # When using multi GPU change the parameter devices=[0,1] and add strategy='ddp_find_unused_parameters_true'
 
-    trainer = pl.Trainer(accelerator="gpu", devices=[0, 1], max_epochs=PARAMS["max_epochs"],
+    trainer = plight.Trainer(accelerator="gpu", devices=[0, 1], max_epochs=PARAMS["max_epochs"],
                          check_val_every_n_epoch=1, 
                          callbacks=[early_stop_callback], strategy='ddp_find_unused_parameters_true')
     #logger=neptune_logger,
