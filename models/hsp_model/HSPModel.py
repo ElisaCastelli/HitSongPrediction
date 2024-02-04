@@ -93,9 +93,9 @@ class HSPModel(plight.LightningModule):
 
         # LOAD PRE-TRAINED RESNET-50 FINE-TUNED ON GTZAN GENRE
 
-        # checkpoint_path =
-        # "/nas/home/ecastelli/thesis/models/Model/checkpoint/GTZAN_HPSS-epoch=50-/metrics/batch/val_acc=0.77.ckpt"
-        checkpoint_path = "/nas/home/ecastelli/thesis/models/Model/checkpoint/NuovoGTZAN_best.ckpt"
+        # checkpoint_path = "/nas/home/ecastelli/thesis/models/Model/checkpoint/GTZAN_HPSS-epoch=50-/metrics/batch/val_acc=0.77.ckpt"
+        # checkpoint_path = "/nas/home/ecastelli/thesis/models/Model/checkpoint/NuovoGTZAN_best.ckpt"
+        checkpoint_path = "/models/genre_classificator/checkpoint/NuovoGTZAN_best.ckpt"
         self.resnet = GTZANPretrained.load_from_checkpoint(checkpoint_path).resnet
         self.resnet = nn.Sequential(*list(self.resnet.children())[:-1])
         # self.resnet.conv1 = nn.Conv2d(in_channels=3, out_channels=64, kernel_size=(7, 7),

@@ -33,7 +33,7 @@ The model consists in three main components:
     * podcast_discriminator contains a .ipynb notebook used to implement a model for distinguishing audio that contains podcasts and podcasts that conatins music
     * genre_classificator is a model pre-trained on GTZAN Genre that is used as audio feature extractor
     * hsp_model is the final multi-layer perceptron used to predict the song popularity
-
+ 
 ### Train
 
 Starting from the [train.py](train.py) file the training can be started passing three parameters:
