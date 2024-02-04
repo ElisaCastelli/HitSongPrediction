@@ -28,11 +28,11 @@ The model consists in three main components:
 
 ### Repository Structure
 
-* datasets: it contains .csv / .parquet files with english songs and multilingual songs.
+* datasets: it contains .csv / .parquet files with english songs and multilingual songs. Additional information of songs (title, artist ecc) are stored in /nas/home/ecastelli/Data Sources folder and divided into 3 files: spotify_album.csv, spotify_artists.csv and spotify_tracks.csv. A join can be done using as key the spotify_id and track_id columns.
 * models: it contains the models used for this project. 
     * podcast_discriminator contains a .ipynb notebook used to implement a model for distinguishing audio that contains podcasts and podcasts that conatins music
-    * genre_classificator
-    * hsp_model 
+    * genre_classificator is a model pre-trained on GTZAN Genre that is used as audio feature extractor
+    * hsp_model is the final multi-layer perceptron used to predict the song popularity
 
 ### Train
 
@@ -44,7 +44,7 @@ Starting from the [train.py](train.py) file the training can be started passing 
 To start the training process:
 
 * Install the requirements.txt in your virtual environment
-* Check the connection to the servers to be able to have access to the audio files stored there and to the checkpoint of the pre-trained model
+* Check the connection to the ISPL servers to be able to have access to the audio files stored there (/nas/home/ecastelli/thesis/Audio) and to the checkpoint of the pre-trained model ("/nas/home/ecastelli/thesis/models/Model/checkpoint/NuovoGTZAN_best.ckpt"). 
 * Change the NeptuneLogger parameters to be able to see logs
 * Launch from the main folder *python train.py --help* and follow the instructions
 

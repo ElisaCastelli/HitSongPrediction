@@ -58,11 +58,11 @@ class HSPDataModule(plight.LightningDataModule):
 
         random.shuffle(self.train_list)
         df_train = pl.DataFrame(self.train_list)
-        df_train.drop(columns=['Index'], inplace=True)
+        df_train=df_train.drop("Index")
         self.train_data = HSPDataset(subset=df_train, annotation_file=self.ANNOTATION_FILE,
                                      language=self.language, problem=self.problem, num_classes=self.num_classes)
         df_val = pl.DataFrame(validation_list)
-        df_val.drop(columns=['Index'], inplace=True)
+        df_val=df_val.drop("Index")
         self.validation_data = HSPDataset(subset=df_val, annotation_file=self.ANNOTATION_FILE,
                                           language=self.language, problem=self.problem, num_classes=self.num_classes)
 
@@ -71,7 +71,7 @@ class HSPDataModule(plight.LightningDataModule):
         train_aug_list.extend(self.train_list)
         train_aug_list.extend(self.train_list)
         train_aug_data = pl.DataFrame(train_aug_list)
-        train_aug_data.drop(columns=['Index'], inplace=True)
+        train_aug_data=train_aug_data.drop("Index")
         train_aug_data = HSPDataset(subset=train_aug_data, annotation_file=self.ANNOTATION_FILE, language=self.language,
                                     augmented=True, problem=self.problem, num_classes=self.num_classes)
         return train_aug_data

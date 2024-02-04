@@ -4,7 +4,6 @@ from torch.utils.data import Dataset
 import polars as pl
 from torchvision import transforms
 import librosa.feature
-import librosa.display
 from models.audio_processing import *
 
 
@@ -30,7 +29,7 @@ DICT_LABEL = {
 
 class GTZANDataset(Dataset):
     def __init__(self, subset, augmented=False):
-        if subset:
+        if subset is not None:
             self.annotations = subset
         else:
             self.annotations = pl.read_csv(ANNOTATIONS_FILE)

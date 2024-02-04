@@ -39,7 +39,7 @@ class HSPDataset(Dataset):
                 the popularity ranges
 
         """
-        if subset:
+        if subset is not None:
             self.tracks_dataframe = subset
         else:
             self.tracks_dataframe = pl.read_parquet(annotation_file)

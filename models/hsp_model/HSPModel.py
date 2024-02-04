@@ -8,7 +8,7 @@ import torch.nn.functional as F
 from torchmetrics.regression import R2Score
 from torchmetrics import Accuracy, Recall, F1Score, Precision
 from torchmetrics.classification import MulticlassRecall, MulticlassPrecision, MulticlassF1Score
-from models.hsp_model.GTZANPreTrained import GTZANPretrained
+from models.genre_classificator.GTZANPreTrained import GTZANPretrained
 from torchvision import transforms
 from models.hsp_model.HSPDataModule import HSPDataModule
 #from sentence_transformers import SentenceTransformer
@@ -95,7 +95,7 @@ class HSPModel(plight.LightningModule):
 
         # checkpoint_path =
         # "/nas/home/ecastelli/thesis/models/Model/checkpoint/GTZAN_HPSS-epoch=50-/metrics/batch/val_acc=0.77.ckpt"
-        checkpoint_path = "/nas/home/ecastelli/thesis/models/Model/checkpoint/NuovoGTZAN-epoch=24-val_acc=0.00.ckpt"
+        checkpoint_path = "/nas/home/ecastelli/thesis/models/Model/checkpoint/NuovoGTZAN_best.ckpt"
         self.resnet = GTZANPretrained.load_from_checkpoint(checkpoint_path).resnet
         self.resnet = nn.Sequential(*list(self.resnet.children())[:-1])
         # self.resnet.conv1 = nn.Conv2d(in_channels=3, out_channels=64, kernel_size=(7, 7),

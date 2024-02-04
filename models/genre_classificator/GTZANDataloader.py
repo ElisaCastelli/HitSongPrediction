@@ -54,10 +54,10 @@ class GTZANDataModule(plight.LightningDataModule):
             self.validation_list.extend(genre[50:])
 
         df_train = pl.DataFrame(self.train_list)
-        df_train.drop(columns=['Index'], inplace=True)
+        df_train=df_train.drop("Index")
         self.train_data = GTZANDataset(df_train)
         df_val = pl.DataFrame(self.validation_list)
-        df_val.drop(columns=['Index'], inplace=True)
+        df_val=df_val.drop("Index")
         self.validation_data = GTZANDataset(df_val)
 
     def get_augmented_data(self):
