@@ -44,7 +44,9 @@ Starting from the [train.py](train.py) file the training can be started passing 
 To start the training process:
 
 * Install the requirements.txt in your virtual environment
-* Check the connection to the ISPL servers to be able to have access to the audio files stored there (/nas/home/ecastelli/thesis/Audio) and to the checkpoint of the pre-trained model ("/nas/home/ecastelli/thesis/models/Model/checkpoint/NuovoGTZAN_best.ckpt"). 
-* Change the NeptuneLogger parameters to be able to see logs
+* Check the connection to the ISPL servers to be able to have access to the audio files stored there (/nas/home/ecastelli/thesis/Audio) and to the checkpoint of the pre-trained model ("/nas/home/ecastelli/thesis/models/Model/checkpoint/pretraining.ckpt"). 
+* Change the NeptuneLogger parameters if you want to be able to see logs on Neptune or substitute it with whatever you want
+* Change the device type used by the trainer in GTZANPreTrained.py and HSPModel.py with your kind of gpu
 * Launch from the main folder *python train.py --help* and follow the instructions
+
 

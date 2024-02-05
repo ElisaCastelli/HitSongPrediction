@@ -75,7 +75,7 @@ class HSPModel(plight.LightningModule):
         self.sbert_model=sentence_bert[language]
         self.tensor_transform = transforms.ToTensor()
         self.language = language
-        if problem == 'r':  # Regression
+        if problem == "r":  # Regression
             self.loss = nn.L1Loss()
             self.loss2 = nn.MSELoss()
             self.acc = R2Score()
@@ -95,9 +95,12 @@ class HSPModel(plight.LightningModule):
 
         # checkpoint_path = "/nas/home/ecastelli/thesis/models/Model/checkpoint/GTZAN_HPSS-epoch=50-/metrics/batch/val_acc=0.77.ckpt"
         # checkpoint_path = "/nas/home/ecastelli/thesis/models/Model/checkpoint/NuovoGTZAN_best.ckpt"
-        checkpoint_path = "/models/genre_classificator/checkpoint/NuovoGTZAN_best.ckpt"
-        self.resnet = GTZANPretrained.load_from_checkpoint(checkpoint_path).resnet
-        self.resnet = nn.Sequential(*list(self.resnet.children())[:-1])
+        checkpoint_path = "models/genre_classificator/checkpoint/pretraining.ckpt"
+        try:
+            self.resnet = GTZANPretrained.load_from_checkpoint(checkpoint_path).resnet
+            self.resnet = nn.Sequential(*list(self.resnet.children())[:-1])
+        except Exception as e:
+            print(e)
         # self.resnet.conv1 = nn.Conv2d(in_channels=3, out_channels=64, kernel_size=(7, 7),
         #                               stride=(2, 2), padding=(3, 3), bias=False)
         # self.resnet = nn.Sequential(*list(self.resnet.children())[:-4])
@@ -246,13 +249,14 @@ def hit_song_prediction(problem, language, num_classes):
         print("Check the parameters!\nproblem: you can choose between \"c\" or \"r\" for classification or regression\
               \nlanguage: you can choose between \"en\" or \"mul\" for english or multilingual")
         exit()
+   
     model = HSPModel(problem=problem, language=language, num_classes=num_classes)
     model.freeze_pretrained()
 
-    # When using multi GPU change the parameter devices=[0,1] and add strategy='ddp_find_unused_parameters_true'
+    # When using multi GPU change the parameter devices=[0,1] and add strategy='ddp_find_unused_parameters_true' and change accelerator with gpu
+    trainer = plight.Trainer(accelerator="mps", devices=1, max_epochs=PARAMS["max_epochs"],
+                        check_val_every_n_epoch=1, 
+                        callbacks=[early_stop_callback])
 
-    trainer = plight.Trainer(accelerator="gpu", devices=[0, 1], max_epochs=PARAMS["max_epochs"],
-                         check_val_every_n_epoch=1, 
-                         callbacks=[early_stop_callback], strategy='ddp_find_unused_parameters_true')
     #logger=neptune_logger,
     trainer.fit(model=model)
