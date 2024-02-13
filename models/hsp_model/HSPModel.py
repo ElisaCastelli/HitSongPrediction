@@ -13,6 +13,8 @@ from torchvision import transforms
 from models.hsp_model.HSPDataModule import HSPDataModule
 #from sentence_transformers import SentenceTransformer
 from models.hsp_model.models_configurations import *
+from sentence_transformers import SentenceTransformer
+device  = "cuda:0" if torch.cuda.is_available() else "cpu" # Luca
 
 ''' NeptuneLogger object to log metrics and parameters'''
 """ neptune_logger = NeptuneLogger(
@@ -45,8 +47,8 @@ early_stop_callback = EarlyStopping(monitor="/metrics/batch/val_loss",
                                     patience=PARAMS["patience"])
 
 annotations_local={
-    "en":"Datasets/SPD_english.parquet",
-    "mul":"Datasets/SPD_multilingual.parquet"
+    "en":"Datasets/SPD_english.parquet", # Luca
+    "mul":"Datasets/SPD_multilingual.parquet" # Luca
 }
 
 annotations_nas={
@@ -72,7 +74,8 @@ class HSPModel(plight.LightningModule):
         """
         super().__init__()
         self.annotation_file=annotations_local[language]
-        self.sbert_model=sentence_bert[language]
+
+        self.sbert_model=SentenceTransformer(sentence_bert[language])# Luca
         self.tensor_transform = transforms.ToTensor()
         self.language = language
         if problem == "r":  # Regression
@@ -96,9 +99,12 @@ class HSPModel(plight.LightningModule):
         # checkpoint_path = "/nas/home/ecastelli/thesis/models/Model/checkpoint/GTZAN_HPSS-epoch=50-/metrics/batch/val_acc=0.77.ckpt"
         # checkpoint_path = "/nas/home/ecastelli/thesis/models/Model/checkpoint/NuovoGTZAN_best.ckpt"
         checkpoint_path = "models/genre_classificator/checkpoint/pretraining.ckpt"
+        checkpoint_path = "/nas/home/ecastelli/thesis/models/Model/checkpoint/pretraining.ckpt"
+
         try:
             self.resnet = GTZANPretrained.load_from_checkpoint(checkpoint_path).resnet
             self.resnet = nn.Sequential(*list(self.resnet.children())[:-1])
+
         except Exception as e:
             print(e)
         # self.resnet.conv1 = nn.Conv2d(in_channels=3, out_channels=64, kernel_size=(7, 7),
@@ -125,6 +131,7 @@ class HSPModel(plight.LightningModule):
 
             Output: the model prediction
         """
+
         lyrics_emb = self.sbert_model.encode(lyrics)
         lyrics_emb = self.tensor_transform(lyrics_emb)
         lyrics_emb = lyrics_emb.squeeze()
@@ -160,6 +167,8 @@ class HSPModel(plight.LightningModule):
             y = y.unsqueeze(1)
         y_pred = self(spec, lyrics, year)
         loss = self.loss(y_pred, y)
+
+
         self.log("/metrics/batch/train_loss", loss, prog_bar=True, on_step=False, on_epoch=True,
                  batch_size=PARAMS["batch_size"])
         acc = self.acc(y_pred, y)
@@ -179,6 +188,7 @@ class HSPModel(plight.LightningModule):
             loss2 = self.loss2(y_pred, y)
             self.log("/metrics/batch/train_loss2", loss2, prog_bar=True, on_step=False, on_epoch=True,
                      batch_size=PARAMS["batch_size"])
+
         return {'loss': loss}
 
     def validation_step(self, batch, batch_idx):
@@ -250,13 +260,17 @@ def hit_song_prediction(problem, language, num_classes):
               \nlanguage: you can choose between \"en\" or \"mul\" for english or multilingual")
         exit()
    
+
     model = HSPModel(problem=problem, language=language, num_classes=num_classes)
     model.freeze_pretrained()
 
     # When using multi GPU change the parameter devices=[0,1] and add strategy='ddp_find_unused_parameters_true' and change accelerator with gpu
-    trainer = plight.Trainer(accelerator="mps", devices=1, max_epochs=PARAMS["max_epochs"],
-                        check_val_every_n_epoch=1, 
-                        callbacks=[early_stop_callback])
+    #trainer = plight.Trainer(accelerator="cuda", devices=1, max_epochs=PARAMS["max_epochs"],
+    #                    check_val_every_n_epoch=1,
+    #                    callbacks=[early_stop_callback])
 
+    trainer = plight.Trainer(accelerator="gpu", devices=[3,4,5], max_epochs=PARAMS["max_epochs"],
+                        check_val_every_n_epoch=1,
+                        callbacks=[early_stop_callback], strategy='ddp_find_unused_parameters_true')
     #logger=neptune_logger,
     trainer.fit(model=model)

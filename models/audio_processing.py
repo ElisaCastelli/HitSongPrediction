@@ -1,6 +1,9 @@
 import numpy as np
 import librosa
 import random
+
+import torch
+import torchaudio.transforms
 from torchvision.transforms.functional import crop
 
 
@@ -23,6 +26,20 @@ def get_log_mel_spectrogram(waveform, sample_rate=22050, hop_length=512, win_len
                                              fmax=8000
                                              )
         log_mel = librosa.power_to_db(mel, ref=np.max)
+        spectrogram_normalized = (log_mel - log_mel.min()) / (log_mel.max() - log_mel.min())
+    except Exception as e:
+        print(e)
+    return spectrogram_normalized
+
+def get_log_mel_spectrogram_torch(waveform, sample_rate=22050, hop_length=512, win_length=1024,n_fft=2048):
+    spectrogram_normalized = None
+    try:
+        melSpec = torchaudio.transforms.MelSpectrogram(sample_rate=sample_rate, win_length=win_length,
+                                                   hop_length=hop_length, n_fft=n_fft, n_mels=256,
+                                                   f_max=8000)
+        mel = melSpec(waveform)
+
+        log_mel = torch.log(mel+0.00001)
         spectrogram_normalized = (log_mel - log_mel.min()) / (log_mel.max() - log_mel.min())
     except Exception as e:
         print(e)

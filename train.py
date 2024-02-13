@@ -1,4 +1,5 @@
 import argparse
+
 from models.hsp_model.HSPModel import *
 import typer
 

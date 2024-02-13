@@ -1,5 +1,7 @@
 import os
 import torch
+import torchaudio
+import numpy as np
 import polars as pl
 from torch.utils.data import Dataset
 from torchvision import transforms
@@ -62,20 +64,31 @@ class HSPDataset(Dataset):
             Input: index (int) of the element to get
             Output: dictionary that contains 4 values regarding {"spectrogram":, "lyrics":, "year":, "label":}
         """
-        data_row = self.tracks_dataframe.row(index)
-        label = int(data_row['label'])
+        data_row = self.tracks_dataframe.row(index,named=True) # Luca
+        label = int(data_row['popularity']) # LUCA --> was label
         if self.problem == 'c':
             label = get_class(label, self.num_classes)
         lyrics = data_row["lyrics"]
-        release_year = int(data_row["release_year"])
+        release_year = int(data_row["year"]) # LUCA --> was release_year
         filename = data_row["spotify_id"]
         file = str(filename) + ".mp3"
         audio_sample_path = os.path.join(self.root_dir, file)
-        audio, sr = librosa.load(audio_sample_path, sr=SAMPLE_RATE)
+        # audio, sr = librosa.load(audio_sample_path, sr=SAMPLE_RATE) Elisa
+
+        # Luca --> New audio-preprocessing in Torch
+        audio, sr = torchaudio.load(audio_sample_path)
+        audio = (audio[0] + audio[1]) / 2
+        audio = torchaudio.transforms.Resample(orig_freq=sr,new_freq=SAMPLE_RATE)(audio)
 
         # The length is specified because, even if the audios have different lengths, each one is longer than 661500
-        norm_spectrogram = get_log_mel_spectrogram(waveform=audio[:661500], sample_rate=SAMPLE_RATE,
-                                                   hop_length=512, win_length=1024)  # 639450 = 29 sec
+        #norm_spectrogram = get_log_mel_spectrogram(waveform=audio.detach().numpy()[:661500], sample_rate=SAMPLE_RATE,
+        #                                           hop_length=512, win_length=1024)  # 639450 = 29 sec
+
+        norm_spectrogram = get_log_mel_spectrogram_torch(waveform=torch.Tensor(audio).unsqueeze(0)[:661500], sample_rate=SAMPLE_RATE,
+                                                   hop_length=512, win_length=1024,n_fft=2048)  # 639450 = 29 sec
+
+        # Remove channel idx
+        norm_spectrogram = norm_spectrogram[0]
         if self.augmented:
             # r = random.randint(0, 1)
             # if r == 0:
@@ -83,7 +96,8 @@ class HSPDataset(Dataset):
             # else:
             #     audio = time_enhancement_channel(audio, SAMPLE_RATE)
             #     norm_spectrogram = get_log_mel_spectrogram(waveform=audio[:639450], sample_rate=SAMPLE_RATE)
-        norm_spectrogram = self.tensor_transform(norm_spectrogram)
+        #norm_spectrogram = self.tensor_transform(norm_spectrogram) Luca
+        norm_spectrogram = norm_spectrogram.unsqueeze(0)
         norm_spectrogram = norm_spectrogram[:, :, :1275]  # con hop_size 512 è 1275, con 256 è 2575
 
         # 3 channel concat the spectrogram, could be intering to create the 3 channels with an harmonic percussive separation

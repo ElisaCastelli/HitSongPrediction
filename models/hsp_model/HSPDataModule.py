@@ -17,7 +17,7 @@ def collate_fn(batch):
     return {
         'spectrogram': torch.stack([x['spectrogram'] for x in batch]),
         'year': torch.tensor([x['year'] for x in batch]),
-        'lyrics': list([x['lyrics'] for x in batch]),
+        'lyrics': [x['lyrics'] for x in batch], #list()
         'label': torch.tensor([x['label'] for x in batch])
     }
 
@@ -33,7 +33,7 @@ class HSPDataModule(plight.LightningDataModule):
         self.num_classes = num_classes
         self.language = language
         self.augmented = augmented
-        self.BATCH_SIZE = 64
+        self.BATCH_SIZE = 32
         self.ANNOTATION_FILE = annotation_file
 
     def setup(self, batch_size, stage=None):
@@ -45,6 +45,7 @@ class HSPDataModule(plight.LightningDataModule):
             label = row['popularity']
             label = get_class(label, self.num_classes)
             lists[str(label)].append(row)
+
 
         # stratification of popularity 
             
@@ -82,10 +83,10 @@ class HSPDataModule(plight.LightningDataModule):
             train_aug_data = self.get_augmented_data()
             train_dataset = torch.utils.data.ConcatDataset([self.train_data, train_aug_data])
         train_dataloader = DataLoader(train_dataset, batch_size=self.BATCH_SIZE, num_workers=8, collate_fn=collate_fn,
-                                      shuffle=True)
+                                      shuffle=True,pin_memory=True)
         return train_dataloader
 
     def val_dataloader(self):
         val_dataloader = DataLoader(self.validation_data, batch_size=self.BATCH_SIZE, num_workers=8,
-                                    collate_fn=collate_fn)
+                                    collate_fn=collate_fn,pin_memory=True)
         return val_dataloader

@@ -3,6 +3,7 @@ import lightning.pytorch as plight
 from models.genre_classificator.GTZANDataset import GTZANDataset
 from torch.utils.data import DataLoader, Dataset
 import polars as pl
+import pandas as pd
 import torch
 
 ANNOTATIONS_FILE = "/nas/home/ecastelli/thesis/GTZAN/features_30_sec.csv"
@@ -44,7 +45,7 @@ class GTZANDataModule(plight.LightningDataModule):
         dataframe = pl.read_csv(ANNOTATIONS_FILE)
 
         # Divide songs into genres to build a balanced dataset for training and valuation
-        for index, row in enumerate(dataframe.itertuples(), 0):
+        for index, row in enumerate(dataframe.iter_rows(), 0):
             label = row[-1]
             lists[str(label)].append(row)
 
